@@ -33,6 +33,33 @@ function Brand() {
   const handleEditBrand = (brand) => {
     setEditBrand(brand);
   };
+  
+  const handleDeleteBrand = async (id) => {
+    try {
+      // Delete the brand
+      const response = await fetch(`http://localhost:3000/api/carbrand/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete brand');
+      }
+  
+      // Filter out the deleted brand from the brands array
+      setBrands(prevBrands => prevBrands.filter(brand => brand._id !== id));
+  
+      // Delete related carmodels
+      const responseModels = await fetch(`http://localhost:3000/api/carmodels/${id}`, {
+        method: 'DELETE',
+      });
+      if (!responseModels.ok) {
+        throw new Error('Failed to delete carmodels associated with the brand');
+      }
+    } catch (error) {
+      console.error('Error deleting brand:', error);
+    }
+  };
+  
+  
 
   const handleUpdateBrand = (updatedBrand) => {
     setBrands(prevBrands => prevBrands.map(brand => (brand._id === updatedBrand._id ? updatedBrand : brand)));
@@ -86,8 +113,11 @@ function Brand() {
                   </div>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => handleEditBrand(brand)} className="font-medium text-blue-600 dark:text-blue-500 hover:underline">
+                  <button onClick={() => handleEditBrand(brand)} className="font-medium text-zinc  hover:text-zinc/[0.8]">
                     Edit
+                  </button>
+                  <button onClick={() => handleDeleteBrand(brand._id)} className="ml-2 font-medium text-red-600 hover:text-red-800">
+                    Delete
                   </button>
                 </td>
               </tr>

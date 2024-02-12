@@ -16,6 +16,11 @@ const SideNav = () => {
                 Brands
             </li>
           </Link>
+          <Link href="/listings">
+            <li className="py-2 px-4 mx-2 hover:bg-gray-300 text-zinc rounded-lg ">
+              Listing
+            </li>
+          </Link>
           {/* Add more links as needed */}
         </ul>
       </div>

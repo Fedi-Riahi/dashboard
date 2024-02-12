@@ -1,160 +1,83 @@
-"use client"
+"use client";
 import React, { useState, useRef } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import Image from 'next/image';
 
-// Function to generate unique IDs
 const generateUniqueId = () => {
-  return Math.random().toString(36).substr(2, 9); // Generate a random alphanumeric string
+  return Math.random().toString(36).substr(2, 9);
 };
 
-const BrandForm = ({ brandData }) => {
-  const [name, setName] = useState(brandData ? brandData.name : '');
-  const [models, setModels] = useState(brandData ? brandData.models : '');
-  const [coverImageUrls, setCoverImageUrls] = useState(brandData ? brandData.coverImages : []);
+const BrandForm = () => {
+  const [name, setName] = useState('');
+  const [models, setModels] = useState('');
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
-  const [generatedId, setGeneratedId] = useState(''); // State to store generated ID
+  const [generatedId, setGeneratedId] = useState('');
   const imageUploadRef = useRef(null);
   const [message, setMessage] = useState('');
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     try {
       const selectedFiles = e.target.files;
-      const newGeneratedId = generateUniqueId(); // Generate unique ID
-      setGeneratedId(newGeneratedId); // Store generated ID in state
+      const newGeneratedId = generateUniqueId();
+      setGeneratedId(newGeneratedId);
 
       const newFiles = Array.from(selectedFiles).map(file => ({
         file,
-        loading: false,
-        progress: 0,
-        folderId: newGeneratedId // Assign folderId to each file
+        folderId: newGeneratedId
       }));
 
       setFiles(prevFiles => [...prevFiles, ...newFiles]);
-
-      newFiles.forEach((fileData, index) => {
-        const { file, folderId } = fileData;
-        const storageRef = ref(storage, `images/${folderId}/${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
-
-        uploadTask.on('state_changed',
-          (snapshot) => {
-            const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-            setFiles(prevFiles => {
-              const updatedFiles = [...prevFiles];
-              if (updatedFiles[index]) {
-                updatedFiles[index].progress = progress;
-              }
-              return updatedFiles;
-            });
-          },
-          (error) => {
-            console.error('Error uploading image:', error);
-            setLoading(false);
-          },
-          async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            setCoverImageUrls(prevUrls => [...prevUrls, downloadURL]);
-            setFiles(prevFiles => {
-              const updatedFiles = [...prevFiles];
-              if (updatedFiles[index]) {
-                updatedFiles[index].loading = false;
-              }
-              return updatedFiles;
-            });
-          }
-        );
-
-        setFiles(prevFiles => {
-          const updatedFiles = [...prevFiles];
-          if (updatedFiles[index]) {
-            updatedFiles[index].loading = true;
-          }
-          return updatedFiles;
-        });
-      });
     } catch (error) {
       console.error('Error handling file change:', error);
     }
   };
 
-  const handleDeleteImage = async (index) => {
+  const handleDeleteImage = (index) => {
     try {
-      const fileToDelete = files[index].file;
-      const storageRef = ref(storage, `images/${files[index].folderId}/${fileToDelete.name}`);
-      await deleteObject(storageRef);
-  
-      // Check if it's the last image in the folder
-      if (files.length === 1) {
-        // If it's the last image, refrain from deleting the image itself
-        setFiles(prevFiles => {
-          const updatedFiles = [...prevFiles];
-          updatedFiles.splice(index, 1); // Remove the image from the UI
-          return updatedFiles;
-        });
-      } else {
-        // If there are other images, proceed with deletion
-        setFiles(prevFiles => {
-          const updatedFiles = [...prevFiles];
-          updatedFiles.splice(index, 1);
-          return updatedFiles;
-        });
-      }
+      const updatedFiles = [...files];
+      updatedFiles.splice(index, 1);
+      setFiles(updatedFiles);
     } catch (error) {
       console.error('Error deleting image:', error);
     }
   };
-  
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       setLoading(true);
-
+      const modelsArray = models.split(',').map(model => model.trim());
       if (!name) {
         throw new Error('Brand Name is required');
       }
 
-      if (coverImageUrls.length === 0) {
-        throw new Error('At least one cover image is required');
+      if (files.length === 0) {
+        throw new Error('At least one image is required');
       }
 
-      if (!generatedId) {
-        throw new Error('Generated ID is missing');
-      }
+      const uploadedImageUrls = await Promise.all(files.map(async (fileData) => {
+        const uploadTaskSnapshot = await uploadImageToStorage(fileData.file, fileData.folderId);
+        return getDownloadURL(uploadTaskSnapshot.ref);
+      }));
 
       const formData = {
         name,
-        models,
-        coverImages: coverImageUrls,
-        folderId: generatedId, // Use generatedId from state
+        models: modelsArray,
+        coverImages: uploadedImageUrls,
+        folderId: generatedId
       };
 
-      const response = await fetch('http://localhost:3000/api/carbrand', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save data');
-      }
-
-      const responseData = await response.json();
+      await saveFormDataToMongoDB(formData);
 
       setName('');
       setModels('');
-      setCoverImageUrls([]);
       setFiles([]);
       imageUploadRef.current.value = '';
 
-      setMessage(responseData.message || 'Data saved successfully.');
+      setMessage('Data saved successfully.');
       setLoading(false);
     } catch (error) {
       console.error('Error:', error);
@@ -163,9 +86,25 @@ const BrandForm = ({ brandData }) => {
     }
   };
 
+  const uploadImageToStorage = async (file, folderId) => {
+    const storageRef = ref(storage, `images/${folderId}/${file.name}`);
+    return uploadBytesResumable(storageRef, file);
+  };
 
-  const isFormValid = () => {
-    return files.every(file => !file.loading);
+  const saveFormDataToMongoDB = async (formData) => {
+    const response = await fetch('http://localhost:3000/api/carbrand', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to save data to MongoDB');
+    }
+
+    return response.json();
   };
 
   return (
@@ -222,14 +161,6 @@ const BrandForm = ({ brandData }) => {
                 width={150}
                 height={150}
               />
-              {fileData.loading && (
-                <div className="w-[150px] h-4 bg-gray-300 rounded-full">
-                  <div
-                    className="h-full bg-gray-800 rounded-full"
-                    style={{ width: `${fileData.progress}%`, maxWidth: '100%' }}
-                  ></div>
-                </div>
-              )}
               <button
                 onClick={() => handleDeleteImage(index)}
                 className="absolute top-0 right-0 p-1 bg-white rounded-full text-red-500"
@@ -254,7 +185,6 @@ const BrandForm = ({ brandData }) => {
         {!loading && files.length > 0 && (
           <button
             type="submit"
-            disabled={!isFormValid()}
             className="mt-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Submit

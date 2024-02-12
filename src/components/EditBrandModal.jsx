@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import Image from 'next/image';
-
+import { XMarkIcon } from '@heroicons/react/24/outline';
 const EditBrandModal = ({ brand, onClose, onUpdate, folderId  }) => {
   const [name, setName] = useState(brand.name);
   const [models, setModels] = useState(brand.models);
@@ -139,13 +139,17 @@ const EditBrandModal = ({ brand, onClose, onUpdate, folderId  }) => {
   
 
   return (
-    <div className="modal">
-      <div className="modal-content p-4 bg-white">
-        <span className="close text-xl font-bold cursor-pointer" onClick={onClose}>&times;</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 ">
+      <div className="bg-white p-6 rounded-lg w-full max-w-md relative">
+        <span className="close text-xl font-bold cursor-pointer absolute top-2 right-2" onClick={onClose}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </span>
         <h2 className="text-2xl font-bold mb-4">Edit Brand</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
+            <label className="block text-sm font-medium text-gray-700" htmlFor="name">
               Name:
             </label>
             <input
@@ -153,11 +157,11 @@ const EditBrandModal = ({ brand, onClose, onUpdate, folderId  }) => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-indigo-500"
+              className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-zinc"
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="models">
+            <label className="block text-sm font-medium text-gray-700" htmlFor="models">
               Models:
             </label>
             <input
@@ -165,39 +169,50 @@ const EditBrandModal = ({ brand, onClose, onUpdate, folderId  }) => {
               type="text"
               value={models}
               onChange={(e) => setModels(e.target.value)}
-              className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-indigo-500"
+              className="block w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-zinc"
             />
           </div>
           {/* Display existing cover images */}
           <div className="mb-4 flex flex-wrap items-center">
             {coverImages.map((image, index) => (
-              <div key={index} className="mr-2 mb-2">
+              <div key={index} className="mr-2 mb-2 relative">
                 <Image src={image} alt={`Cover ${index}`} width={150} height={150} className="w-20 h-20 object-cover rounded-full mr-2" />
-                <button onClick={(event) => handleDeleteImage(index, event)} className="text-sm text-red-500">Delete</button>
-
+                <button onClick={(event) => handleDeleteImage(index, event)} className="text-sm bg-gray-100 absolute top-0 text-white  rounded-full right-2">
+                  <XMarkIcon className='h-6 w-6  text-zinc hover:text-zinc/[0.9]'/>
+                </button>
               </div>
             ))}
           </div>
           {/* Display new cover images */}
-            <div className="mb-4 flex flex-wrap items-center">
+          <div className="mb-4 flex flex-wrap items-center">
             {newCoverImages.map((file, index) => (
-                <div key={index} className="mr-2 mb-2 relative">
+              <div key={index} className="mr-2 mb-2 relative">
                 <Image src={URL.createObjectURL(file)} alt={`New Image ${index}`} width={150} height={150} className="w-20 h-20 object-cover rounded-full mr-2 mb-2" />
                 {uploading && uploadProgress > 0 && (
-                    <div className="w-full h-2 bg-gray-300 rounded-md overflow-hidden relative">
-                    <div className="h-full bg-blue-500 absolute bottom-0 left-0" style={{ width: `${uploadProgress}%` }}></div>
-                    </div>
+                  <div className="w-full h-2 bg-gray-300 rounded-md overflow-hidden relative">
+                    <div className="h-full bg-zinc absolute bottom-0 left-0" style={{ width: `${uploadProgress}%` }}></div>
+                  </div>
                 )}
-                </div>
+              </div>
             ))}
-            </div>
+          </div>
 
-            {/* Allow uploading new cover images */}
-            <input type="file" accept="image/*" onChange={handleFileChange} multiple className="mb-4" />
-            <button type="submit" disabled={uploading} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          {/* Allow uploading new cover images */}
+          <div className="flex items-center justify-center w-full">
+            <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                </svg>
+                <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+              </div>
+              <input id="dropzone-file" type="file" className="hidden" accept="image/*" onChange={handleFileChange} multiple />
+            </label>
+          </div>
+          <button type="submit" disabled={uploading} className="bg-zinc hover:bg-zinc/[0.9] text-white font-semibold py-2 px-6 mt-4 rounded">
             Update
-            </button>
-
+          </button>
         </form>
       </div>
     </div>

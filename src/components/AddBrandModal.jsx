@@ -18,7 +18,7 @@ const AddBrandModal = () => {
       {/* Add Brand button */}
       <button
         onClick={openModal}
-        className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+        className="bg-zinc text-white py-2 px-4 rounded hover:bg-zinc/[0.9]"
       >
         Add Brand
       </button>

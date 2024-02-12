@@ -1,42 +1,47 @@
-MONGO_URI=mongodb+srv://riahi:riahi123654@cluster0.xwzg72p.mongodb.net/?retryWrites=true&w=majority
-EDGE_STORE_ACCESS_KEY=YsTygVOCDNrNn7kdab4kmgXR5zgzlMlo
-EDGE_STORE_SECRET_KEY=cz5XktG1lDeZLPj3mjWPRm7aTMHdy8m72n2TK9oQV3naG9y8
 "use client"
 import React, { useState, useRef, useEffect } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import options from '@/data/options';
 import Image from 'next/image';
-
+import { XMarkIcon } from '@heroicons/react/24/outline'
 const generateUniqueId = () => {
-    return Math.random().toString(36).substr(2, 9);
-  };
+  return Math.random().toString(36).substr(2, 9);
+};
 
 const ModelForm = () => {
-  const [brand, setBrand] = useState('');
-  const [type, setType] = useState('');
-  const [condition, setCondition] = useState('');
-  const [driveType, setDriveType] = useState('');
-  const [transmission, setTransmission] = useState('');
-  const [fuelType, setFuelType] = useState('');
-  const [mileage, setMileage] = useState('');
-  const [engineSize, setEngineSize] = useState('');
-  const [cylinders, setCylinders] = useState('');
-  const [color, setColor] = useState('');
-  const [doors, setDoors] = useState('');
-  const [VIN, setVIN] = useState('');
-  const [images, setImages] = useState([]);
-  const [features, setFeatures] = useState([]);
-  const [safetyFeatures, setSafetyFeatures] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const imageUploadRef = useRef(null);
+    const [listingTitle, setListingTitle] = useState('');
+    const [brands, setBrands] = useState([]);
+    const [model, setModel] = useState('');
+    const [models, setModels] = useState([]);
+    const [brand, setBrand] = useState('');
+    const [type, setType] = useState('');
+    const [condition, setCondition] = useState('');
+    const [year, setYear] = useState('');
+    const [driveType, setDriveType] = useState('');
+    const [transmission, setTransmission] = useState('');
+    const [fuelType, setFuelType] = useState('');
+    const [mileage, setMileage] = useState('');
+    const [engineSize, setEngineSize] = useState('');
+    const [cylinders, setCylinders] = useState('');
+    const [color, setColor] = useState('');
+    const [doors, setDoors] = useState('');
+    const [vin, setVin] = useState('');
+    const [price, setPrice] = useState('');
+    const [files, setFiles] = useState([]);
+    const [generatedId, setGeneratedId] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const imageUploadRef = useRef(null);
+    const [selectedFeatures, setSelectedFeatures] = useState([]);
+    const [selectedSafetyFeatures, setSelectedSafetyFeatures] = useState([]);
+    
 
   useEffect(() => {
     // Fetch brands and their models from the API
     const fetchBrands = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/carbrand');
+        const response = await fetch('http://localhost:3000/api/carbrand');
         if (!response.ok) {
           throw new Error('Failed to fetch brands');
         }
@@ -56,11 +61,12 @@ const ModelForm = () => {
     const selectedBrandData = brands.find(b => b.name === selectedBrand);
     if (selectedBrandData) {
       setModels(selectedBrandData.models);
+      setBrand(selectedBrandData.name);
     } else {
       setModels([]);
+      setBrand('');
     }
   };
-
 
   const handleFileChange = (e) => {
     try {
@@ -72,7 +78,6 @@ const ModelForm = () => {
         file,
         folderId: newGeneratedId
       }));
-
       setFiles(prevFiles => [...prevFiles, ...newFiles]);
     } catch (error) {
       console.error('Error handling file change:', error);
@@ -94,9 +99,8 @@ const ModelForm = () => {
 
     try {
       setLoading(true);
-      const modelsArray = models.split(',').map(model => model.trim());
-      if (!name) {
-        throw new Error('Brand Name is required');
+      if (!brand) {
+        throw new Error('Brand is required');
       }
 
       if (files.length === 0) {
@@ -109,10 +113,13 @@ const ModelForm = () => {
       }));
 
       const formData = {
+        listingTitle,
         brand,
+        model,
         type,
         condition,
         driveType,
+        year,
         transmission,
         fuelType,
         mileage,
@@ -120,18 +127,19 @@ const ModelForm = () => {
         cylinders,
         color,
         doors,
-        VIN,
+        vin,
         images: uploadedImageUrls,
-        features,
-        safetyFeatures,
-        folderId
+        folderId: generatedId,
+        price,
+        features: selectedFeatures,
+        safetyFeatures: selectedSafetyFeatures
       };
-
-      // Example of sending formData to backend
+      await saveFormDataToMongoDB(formData)
       console.log('formData:', formData);
 
       // Clear form fields and state after submission
       setBrand('');
+      setModel('');
       setType('');
       setCondition('');
       setDriveType('');
@@ -139,13 +147,15 @@ const ModelForm = () => {
       setFuelType('');
       setMileage('');
       setEngineSize('');
+      setYear('')
       setCylinders('');
       setColor('');
       setDoors('');
-      setVIN('');
-      setImages([]);
-      setFeatures([]);
-      setSafetyFeatures([]);
+      setVin('');
+      setPrice('');
+      setFiles([]);
+      setSelectedFeatures([]);
+      setSelectedSafetyFeatures([]);
       setMessage('Data saved successfully.');
       setLoading(false);
     } catch (error) {
@@ -180,36 +190,48 @@ const ModelForm = () => {
     <div className="p-8 bg-gray-100 rounded-lg shadow-md">
       <h1 className="text-2xl font-semibold text-gray-800 mb-4">Add New Car Model</h1>
       <form onSubmit={handleSubmit}>
+        {/* Listing Title */}
+        <div className="mb-4">
+          <label htmlFor="listingTitle" className="block text-sm font-medium text-gray-700">Listing Title:</label>
+          <input
+            type="text"
+            id="listingTitle"
+            value={listingTitle}
+            onChange={(e) => setListingTitle(e.target.value)}
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          />
+        </div>
         {/* Brand */}
-      <div className="mb-4">
-        <label htmlFor="brand" className="block text-sm font-medium text-gray-700">Brand:</label>
-        <select
-          id="brand"
-          value={brand}
-          onChange={handleBrandChange}
-          className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-        >
-          <option value="">Select Brand</option>
-          {brands.map((brandOption, index) => (
-            <option key={index} value={brandOption.name}>{brandOption.name}</option>
-          ))}
-        </select>
-      </div>
-      {/* Model */}
-      <div className="mb-4">
-        <label htmlFor="model" className="block text-sm font-medium text-gray-700">Model:</label>
-        <select
-          id="model"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-        >
-          <option value="">Select Model</option>
-          {models.map((modelOption, index) => (
-            <option key={index} value={modelOption}>{modelOption}</option>
-          ))}
-        </select>
-      </div>
+        <div className="mb-4">
+          <label htmlFor="brand" className="block text-sm font-medium text-gray-700">Brand:</label>
+          <select
+            id="brand"
+            value={brand}
+            onChange={handleBrandChange}
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            >
+            <option value="">Select Brand</option>
+            {brands.map((brandOption, index) => (
+                <option key={index} value={brandOption.id}>{brandOption.name}</option> // Use brand ID as value
+            ))}
+            </select>
+
+        </div>
+        {/* Model */}
+        <div className="mb-4">
+          <label htmlFor="model" className="block text-sm font-medium text-gray-700">Model:</label>
+          <select
+            id="model"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          >
+            <option value="">Select Model</option>
+            {models.map((modelOption, index) => (
+              <option key={index} value={modelOption}>{modelOption}</option>
+            ))}
+          </select>
+        </div>
         {/* Type */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700">Type:</label>
@@ -241,6 +263,28 @@ const ModelForm = () => {
               <span className="ml-2">{conditionOption}</span>
             </label>
           ))}
+        </div>
+        {/* Year */}
+        <div className="mb-4">
+          <label htmlFor="year" className="block text-sm font-medium text-gray-700">Year:</label>
+          <input
+            type="text"
+            id="year"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          />
+        </div>
+        {/* Price */}
+        <div className="mb-4">
+          <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price:</label>
+          <input
+            type="text"
+            id="price"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          />
         </div>
         {/* Drive Type */}
         <div className="mb-4">
@@ -289,6 +333,28 @@ const ModelForm = () => {
               <span className="ml-2">{fuelTypeOption}</span>
             </label>
           ))}
+        </div>
+        {/* Engine Size */}
+        <div className="mb-4">
+          <label htmlFor="engineSize" className="block text-sm font-medium text-gray-700">Engine Size:</label>
+          <input
+            type="text"
+            id="engineSize"
+            value={engineSize}
+            onChange={(e) => setEngineSize(e.target.value)}
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          />
+        </div>
+        {/* Mileage */}
+        <div className="mb-4">
+          <label htmlFor="mileage" className="block text-sm font-medium text-gray-700">Mileage:</label>
+          <input
+            type="text"
+            id="mileage"
+            value={mileage}
+            onChange={(e) => setMileage(e.target.value)}
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          />
         </div>
         {/* Cylinders */}
         <div className="mb-4">
@@ -344,10 +410,64 @@ const ModelForm = () => {
           <input
             type="text"
             id="VIN"
-            value={VIN}
-            onChange={(e) => setVIN(e.target.value)}
+            value={vin}
+            onChange={(e) => setVin(e.target.value)}
             className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           />
+        </div>
+        {/* Features */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Features:</label>
+          {options.features.map((featureOption, index) => (
+            <label key={index} className="inline-flex items-center mt-1 mr-4">
+              <input
+                type="checkbox"
+                value={featureOption}
+                checked={selectedFeatures.includes(featureOption)}
+                onChange={(e) => {
+                  const updatedFeatures = [...selectedFeatures];
+                  if (e.target.checked) {
+                    updatedFeatures.push(featureOption);
+                  } else {
+                    const index = updatedFeatures.indexOf(featureOption);
+                    if (index > -1) {
+                      updatedFeatures.splice(index, 1);
+                    }
+                  }
+                  setSelectedFeatures(updatedFeatures);
+                }}
+                className="form-checkbox text-indigo-600 border-gray-300 focus:ring-indigo-500"
+              />
+              <span className="ml-2">{featureOption}</span>
+            </label>
+          ))}
+        </div>
+        {/* Safety Features */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">Safety Features:</label>
+          {options.safetyFeatures.map((safetyFeatureOption, index) => (
+            <label key={index} className="inline-flex items-center mt-1 mr-4">
+              <input
+                type="checkbox"
+                value={safetyFeatureOption}
+                checked={selectedSafetyFeatures.includes(safetyFeatureOption)}
+                onChange={(e) => {
+                  const updatedSafetyFeatures = [...selectedSafetyFeatures];
+                  if (e.target.checked) {
+                    updatedSafetyFeatures.push(safetyFeatureOption);
+                  } else {
+                    const index = updatedSafetyFeatures.indexOf(safetyFeatureOption);
+                    if (index > -1) {
+                      updatedSafetyFeatures.splice(index, 1);
+                    }
+                  }
+                  setSelectedSafetyFeatures(updatedSafetyFeatures);
+                }}
+                className="form-checkbox text-indigo-600 border-gray-300 focus:ring-indigo-500"
+              />
+              <span className="ml-2">{safetyFeatureOption}</span>
+            </label>
+          ))}
         </div>
         {/* Images */}
         <div className="mb-4">
@@ -355,23 +475,47 @@ const ModelForm = () => {
           <input
             type="file"
             id="images"
-            onChange={(e) => setImages(e.target.files)}
+            onChange={handleFileChange}
             multiple
             accept="image/*"
             className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           />
         </div>
+        <div className="flex flex-wrap">
+          {files.map((fileData, index) => (
+            <div key={index} className='relative mr-4 mb-4'>
+              <Image
+                src={URL.createObjectURL(fileData.file)}
+                alt={`Uploaded ${index}`}
+                className="mb-2 rounded-lg"
+                style={{ width: '150px', height: '150px' }}
+                width={150}
+                height={150}
+              />
+              <button
+                onClick={() => handleDeleteImage(index)}
+                className="absolute top-0 right-0 p-1 bg-white rounded-full text-zinc flex justify-center items-center"
+              >
+                <XMarkIcon className='h-6 w-6  text-zinc hover:text-zinc/[0.9]'/>
+              </button>
+
+            </div>
+          ))}
+        </div>
         {/* Submit Button */}
-        <button
-          type="submit"
-          className="mt-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          Submit
-        </button>
+        {loading && <p>Loading...</p>}
+        {!loading && files.length > 0 && (
+          <button
+            type="submit"
+            className="mt-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-zinc hover:bg-zinc/[0.9] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+          >
+            Save
+          </button>
+        )}
+        {message && <p className="mt-2 text-sm text-gray-600">{message}</p>}
       </form>
     </div>
   );
 };
 
 export default ModelForm;
-
