@@ -14,6 +14,10 @@ const carModelSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  inStock:{
+    type: Boolean,
+    required: true
+  },
   condition: {
     type: String,
     enum: ['New', 'Used'],

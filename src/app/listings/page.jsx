@@ -1,7 +1,7 @@
-"use client"
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import EditModelForm from '@/components/EditModelForm';
+"use client";
+import React, { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import EditModelForm from "@/components/EditModelForm";
 
 function Listing() {
   const [carModels, setCarModels] = useState([]);
@@ -9,102 +9,141 @@ function Listing() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editModelData, setEditModelData] = useState(null);
 
-
- 
   useEffect(() => {
     const fetchCarModels = async () => {
       try {
-        // Fetch car models
-        const response = await fetch('http://localhost:3000/api/carmodels', { cache: "no-store" });
+        const response = await fetch("http://localhost:3000/api/carmodels", {
+          cache: "no-store",
+        });
         if (!response.ok) {
-          throw new Error('Failed to fetch car models');
+          throw new Error("Failed to fetch car models");
         }
         const data = await response.json();
-  
+
         setCarModels(data.carListing);
       } catch (error) {
-        console.error('Error fetching car models:', error);
+        console.error("Error fetching car models:", error);
       } finally {
-        setLoading(false); // Set loading to false regardless of success or error
+        setLoading(false);
       }
     };
-  
+
     fetchCarModels();
   }, []);
 
-  // Function to handle opening the modal and setting the data to be edited
-// Function to handle opening the modal and setting the data to be edited
-const handleEditClick = (model) => {
-  // Set the editModelData state with the clicked model data
-  setEditModelData({ ...model, folderId: model.folderId }); // Make sure folderId is included
-  // Open the modal
-  setIsEditModalOpen(true);
-};
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/carmodels/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
+      if (!response.ok) {
+        throw new Error("Failed to delete the model");
+      }
 
-  // Function to handle closing the modal
+      const updatedCarModels = carModels.filter((model) => model._id !== id);
+      setCarModels(updatedCarModels);
+    } catch (error) {
+      console.error("Error deleting car model:", error);
+    }
+  };
+
+  const handleEditClick = (model) => {
+    setEditModelData({ ...model, folderId: model.folderId });
+    setIsEditModalOpen(true);
+  };
+
   const handleClose = () => {
     setIsEditModalOpen(false);
   };
 
-  // Function to handle updating the model after editing
   const handleUpdate = (updatedModelData) => {
-    // Update the carModels state with the updated model data
     const updatedCarModels = carModels.map((model) =>
       model._id === updatedModelData._id ? updatedModelData : model
     );
     setCarModels(updatedCarModels);
-    setIsEditModalOpen(false); // Close the modal after updating
+    setIsEditModalOpen(false);
   };
 
   return (
-    <div className="container mx-auto p-8">
-      <div className='flex items-center justify-between'>
-        <h1 className="text-2xl font-semibold mb-4">Listings</h1>
-        <Link href='/listings/addlisting' className='text-white bg-zinc hover:bg-zinc-[800] px-4 py-2 rounded mb-4'>Add Listing</Link>
+    <>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold mb-4">Listings Management</h1>
+        <Link
+          href="listings/addlisting"
+          className="px-4 py-2 rounded text-white bg-zinc hover:bg-zinc/[0.9] mr-4"
+        >
+          Add Listing
+        </Link>
       </div>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400 border-collapse border border-gray-300">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-              <tr>
-                <th className="px-6 py-3 border border-gray-300">Brand Name</th>
-                <th className="px-6 py-3 border border-gray-300">Model Name</th>
-                <th className="px-6 py-3 border border-gray-300">Listing Title</th>
-                <th className="px-6 py-3 border border-gray-300">VIN</th>
-              </tr>
-            </thead>
-            <tbody>
+      <div className="container py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {loading ? (
+          <p>Loading...</p>
+        ) : (
+          <>
             {carModels.map((carModel) => (
-              <tr key={carModel._id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <td className="px-6 py-4 border border-gray-300 font-medium text-gray-900 dark:text-white">{carModel.brand}</td>
-                <td className="px-6 py-4 border border-gray-300">{carModel.model}</td>
-                <td className="px-6 py-4 border border-gray-300">{carModel.listingTitle}</td>
-                <td className="px-6 py-4 border border-gray-300">{carModel.vin}</td>
-                <td className="px-6 py-4 border border-gray-300">
-                  {/* Call handleEditClick function when Edit link is clicked */}
-                  <button onClick={() => handleEditClick(carModel)} className='text-zinc font-semibold hover:text-zinc-[0.9]'>
-                    Edit
-                  </button>
-                </td>
-              </tr>
+              <div
+                key={carModel._id}
+                className="bg-white rounded-lg shadow-md overflow-hidden relative"
+              >
+                <img
+                  src={carModel.images[0]}
+                  alt={carModel.listingTitle}
+                  className="w-full h-48 object-cover"
+                />
+                <div className="p-4">
+                  <h2 className="text-xl font-bold mb-2">
+                    {carModel.listingTitle}
+                  </h2>
+                  <p className="text-gray-600 font-semibold mb-2">
+                    Model: {carModel.model}
+                  </p>
+                  <p className="text-gray-600 font-semibold mb-4">
+                    VIN: {carModel.vin}
+                  </p>
+                  <div className="absolute top-2 left-2">
+                    {carModel.inStock ? (
+                      <p className="px-2 py-1 bg-green-500 text-white rounded">
+                        In Stock
+                      </p>
+                    ) : (
+                      <p className="px-2 py-1 bg-red-500 text-white rounded">
+                        Out of Stock
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleEditClick(carModel)}
+                      className="text-zinc font-semibold hover:text-zinc-[0.9]"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(carModel._id)}
+                      className="text-red-500 font-semibold hover:text-red-700 ml-2"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
-
-            </tbody>
-          </table>
-        </div>
-      )}
-      {/* Render the EditModelForm modal if isEditModalOpen is true */}
+          </>
+        )}
+      </div>
       {isEditModalOpen && (
         <EditModelForm
-          modelData={editModelData} // Pass the modelData
-          onClose={handleClose} // Pass the onClose function
-          onUpdate={handleUpdate} // Pass the onUpdate function
+          modelData={editModelData}
+          onClose={handleClose}
+          onUpdate={handleUpdate}
+          setModelData={setEditModelData}
         />
       )}
-    </div>
+    </>
   );
 }
 

@@ -2,6 +2,28 @@ import connectDatabase from "@/lib/database";
 import CarBrand from "@/models/CarBrand";
 import { NextResponse } from "next/server";
 
+
+export async function GET(request, {params}) {
+  try {
+      const { id } = params;
+
+      if (!id) {
+          return NextResponse.json({ error: "ID parameter is missing" }, { status: 400 });
+      }
+
+      await connectDatabase();
+      const brand = await CarBrand.findById(id);
+
+      if (!brand) {
+          return NextResponse.json({ error: "Brand not found" }, { status: 404 });
+      }
+
+      return NextResponse.json({ brand });
+  } catch (error) {
+      console.error("Error fetching brand:", error);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
 export async function PUT(request, { params }) {
   const { id } = params;
 

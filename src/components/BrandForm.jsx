@@ -1,21 +1,26 @@
 "use client";
-import React, { useState, useRef } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
-import Image from 'next/image';
+import React, { useState, useRef } from "react";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { storage } from "@/lib/firebase";
+import Image from "next/image";
 
 const generateUniqueId = () => {
   return Math.random().toString(36).substr(2, 9);
 };
 
 const BrandForm = () => {
-  const [name, setName] = useState('');
-  const [models, setModels] = useState('');
+  const [name, setName] = useState("");
+  const [models, setModels] = useState("");
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState([]);
-  const [generatedId, setGeneratedId] = useState('');
+  const [generatedId, setGeneratedId] = useState("");
   const imageUploadRef = useRef(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
 
   const handleFileChange = (e) => {
     try {
@@ -23,14 +28,14 @@ const BrandForm = () => {
       const newGeneratedId = generateUniqueId();
       setGeneratedId(newGeneratedId);
 
-      const newFiles = Array.from(selectedFiles).map(file => ({
+      const newFiles = Array.from(selectedFiles).map((file) => ({
         file,
-        folderId: newGeneratedId
+        folderId: newGeneratedId,
       }));
 
-      setFiles(prevFiles => [...prevFiles, ...newFiles]);
+      setFiles((prevFiles) => [...prevFiles, ...newFiles]);
     } catch (error) {
-      console.error('Error handling file change:', error);
+      console.error("Error handling file change:", error);
     }
   };
 
@@ -40,7 +45,7 @@ const BrandForm = () => {
       updatedFiles.splice(index, 1);
       setFiles(updatedFiles);
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error("Error deleting image:", error);
     }
   };
 
@@ -49,39 +54,44 @@ const BrandForm = () => {
 
     try {
       setLoading(true);
-      const modelsArray = models.split(',').map(model => model.trim());
+      const modelsArray = models.split(",").map((model) => model.trim());
       if (!name) {
-        throw new Error('Brand Name is required');
+        throw new Error("Brand Name is required");
       }
 
       if (files.length === 0) {
-        throw new Error('At least one image is required');
+        throw new Error("At least one image is required");
       }
 
-      const uploadedImageUrls = await Promise.all(files.map(async (fileData) => {
-        const uploadTaskSnapshot = await uploadImageToStorage(fileData.file, fileData.folderId);
-        return getDownloadURL(uploadTaskSnapshot.ref);
-      }));
+      const uploadedImageUrls = await Promise.all(
+        files.map(async (fileData) => {
+          const uploadTaskSnapshot = await uploadImageToStorage(
+            fileData.file,
+            fileData.folderId
+          );
+          return getDownloadURL(uploadTaskSnapshot.ref);
+        })
+      );
 
       const formData = {
         name,
         models: modelsArray,
         coverImages: uploadedImageUrls,
-        folderId: generatedId
+        folderId: generatedId,
       };
 
       await saveFormDataToMongoDB(formData);
 
-      setName('');
-      setModels('');
+      setName("");
+      setModels("");
       setFiles([]);
-      imageUploadRef.current.value = '';
+      imageUploadRef.current.value = "";
 
-      setMessage('Data saved successfully.');
+      setMessage("Data saved successfully.");
       setLoading(false);
     } catch (error) {
-      console.error('Error:', error);
-      setMessage(error.message || 'An error occurred while saving data.');
+      console.error("Error:", error);
+      setMessage(error.message || "An error occurred while saving data.");
       setLoading(false);
     }
   };
@@ -92,16 +102,16 @@ const BrandForm = () => {
   };
 
   const saveFormDataToMongoDB = async (formData) => {
-    const response = await fetch('http://localhost:3000/api/carbrand', {
-      method: 'POST',
+    const response = await fetch("http://localhost:3000/api/carbrand", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(formData)
+      body: JSON.stringify(formData),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save data to MongoDB');
+      throw new Error("Failed to save data to MongoDB");
     }
 
     return response.json();
@@ -111,7 +121,10 @@ const BrandForm = () => {
     <div className="p-8">
       <form onSubmit={handleSubmit} className="">
         <div className="mb-4">
-          <label htmlFor="brandName" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="brandName"
+            className="block text-sm font-medium text-gray-700"
+          >
             Brand Name:
           </label>
           <input
@@ -124,7 +137,10 @@ const BrandForm = () => {
           />
         </div>
         <div className="mb-4">
-          <label htmlFor="models" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="models"
+            className="block text-sm font-medium text-gray-700"
+          >
             Models (comma separated):
           </label>
           <input
@@ -137,7 +153,10 @@ const BrandForm = () => {
           />
         </div>
         <div className="mb-4">
-          <label htmlFor="imageUpload" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="imageUpload"
+            className="block text-sm font-medium text-gray-700"
+          >
             Upload Images:
           </label>
           <input
@@ -152,12 +171,12 @@ const BrandForm = () => {
         </div>
         <div className="flex flex-wrap">
           {files.map((fileData, index) => (
-            <div key={index} className='relative mr-4 mb-4'>
+            <div key={index} className="relative mr-4 mb-4">
               <Image
                 src={URL.createObjectURL(fileData.file)}
                 alt={`Uploaded ${index}`}
                 className="mb-2 rounded-lg"
-                style={{ width: '150px', height: '150px' }}
+                style={{ width: "150px", height: "150px" }}
                 width={150}
                 height={150}
               />

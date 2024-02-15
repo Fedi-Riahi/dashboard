@@ -1,5 +1,5 @@
-"use client"
-import React, { useState, useEffect } from 'react';
+"use client";
+import React, { useState, useEffect } from "react";
 
 const CarBrandsList = () => {
   const [carBrands, setCarBrands] = useState([]);
@@ -7,14 +7,14 @@ const CarBrandsList = () => {
   useEffect(() => {
     const fetchCarBrands = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/carbrand');
+        const response = await fetch("http://localhost:3000/api/carbrand");
         if (!response.ok) {
-          throw new Error('Failed to fetch car brands');
+          throw new Error("Failed to fetch car brands");
         }
         const data = await response.json();
         setCarBrands(data.carBrands);
       } catch (error) {
-        console.error('Error fetching car brands:', error);
+        console.error("Error fetching car brands:", error);
       }
     };
 
@@ -27,7 +27,7 @@ const CarBrandsList = () => {
       {carBrands.map((brand) => (
         <div key={brand._id}>
           <h3>{brand.name}</h3>
-          <p>Models: {brand.models.join(', ')}</p>
+          <p>Models: {brand.models.join(", ")}</p>
           <div>
             {brand.coverImage.map((imageId) => (
               <img

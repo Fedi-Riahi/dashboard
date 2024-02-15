@@ -29,13 +29,14 @@ export async function PUT(request, { params }) {
 
   try {
     const requestData = await request.json();
-    const { folderId, listingTitle, brand, model, condition, type, price, year, driveType, transmission, fuelType, mileage, engineSize, cylinders, color, doors, vin, description, features, safetyFeatures, images, internImages } = requestData;
+    const { inStock,folderId, listingTitle, brand, model, condition, type, price, year, driveType, transmission, fuelType, mileage, engineSize, cylinders, color, doors, vin, description, features, safetyFeatures, images, internImages } = requestData;
 
     await connectDatabase();
 
     // Find the model by ID and update its properties
     await CarModel.findByIdAndUpdate(id, {
       folderId,
+      inStock,
       listingTitle,
       brand,
       model,

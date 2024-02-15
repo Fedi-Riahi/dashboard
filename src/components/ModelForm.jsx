@@ -1,54 +1,56 @@
-"use client"
-import React, { useState, useRef, useEffect } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
-import options from '@/data/options';
-import Image from 'next/image';
-import { XMarkIcon } from '@heroicons/react/24/outline'
+"use client";
+import React, { useState, useRef, useEffect } from "react";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
+import options from "@/data/options";
+import Link from "next/link";
+import Image from "next/image";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 const generateUniqueId = () => {
   return Math.random().toString(36).substr(2, 9);
 };
 
 const ModelForm = () => {
-    const [listingTitle, setListingTitle] = useState('');
-    const [brands, setBrands] = useState([]);
-    const [model, setModel] = useState('');
-    const [models, setModels] = useState([]);
-    const [brand, setBrand] = useState('');
-    const [type, setType] = useState('');
-    const [condition, setCondition] = useState('');
-    const [year, setYear] = useState('');
-    const [driveType, setDriveType] = useState('');
-    const [transmission, setTransmission] = useState('');
-    const [fuelType, setFuelType] = useState('');
-    const [mileage, setMileage] = useState('');
-    const [engineSize, setEngineSize] = useState('');
-    const [cylinders, setCylinders] = useState('');
-    const [color, setColor] = useState('');
-    const [doors, setDoors] = useState('');
-    const [vin, setVin] = useState('');
-    const [price, setPrice] = useState('');
-    const [files, setFiles] = useState([]);
-    const [generatedId, setGeneratedId] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
-    const imageUploadRef = useRef(null);
-    const [selectedFeatures, setSelectedFeatures] = useState([]);
-    const [selectedSafetyFeatures, setSelectedSafetyFeatures] = useState([]);
-    
+  const [listingTitle, setListingTitle] = useState("");
+  const [brands, setBrands] = useState([]);
+  const [model, setModel] = useState("");
+  const [models, setModels] = useState([]);
+  const [inStock, setInStock] = useState(false);
+
+  const [brand, setBrand] = useState("");
+  const [type, setType] = useState("");
+  const [condition, setCondition] = useState("");
+  const [year, setYear] = useState("");
+  const [driveType, setDriveType] = useState("");
+  const [transmission, setTransmission] = useState("");
+  const [fuelType, setFuelType] = useState("");
+  const [mileage, setMileage] = useState("");
+  const [engineSize, setEngineSize] = useState("");
+  const [cylinders, setCylinders] = useState("");
+  const [color, setColor] = useState("");
+  const [doors, setDoors] = useState("");
+  const [vin, setVin] = useState("");
+  const [price, setPrice] = useState("");
+  const [files, setFiles] = useState([]);
+  const [generatedId, setGeneratedId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const imageUploadRef = useRef(null);
+  const [selectedFeatures, setSelectedFeatures] = useState([]);
+  const [selectedSafetyFeatures, setSelectedSafetyFeatures] = useState([]);
 
   useEffect(() => {
     // Fetch brands and their models from the API
     const fetchBrands = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/carbrand');
+        const response = await fetch("http://localhost:3000/api/carbrand");
         if (!response.ok) {
-          throw new Error('Failed to fetch brands');
+          throw new Error("Failed to fetch brands");
         }
         const data = await response.json();
         setBrands(data.carBrand);
       } catch (error) {
-        console.error('Error fetching brands:', error);
+        console.error("Error fetching brands:", error);
       }
     };
 
@@ -58,13 +60,13 @@ const ModelForm = () => {
   const handleBrandChange = (e) => {
     const selectedBrand = e.target.value;
     setBrand(selectedBrand);
-    const selectedBrandData = brands.find(b => b.name === selectedBrand);
+    const selectedBrandData = brands.find((b) => b.name === selectedBrand);
     if (selectedBrandData) {
       setModels(selectedBrandData.models);
       setBrand(selectedBrandData.name);
     } else {
       setModels([]);
-      setBrand('');
+      setBrand("");
     }
   };
 
@@ -74,13 +76,13 @@ const ModelForm = () => {
       const newGeneratedId = generateUniqueId();
       setGeneratedId(newGeneratedId);
 
-      const newFiles = Array.from(selectedFiles).map(file => ({
+      const newFiles = Array.from(selectedFiles).map((file) => ({
         file,
-        folderId: newGeneratedId
+        folderId: newGeneratedId,
       }));
-      setFiles(prevFiles => [...prevFiles, ...newFiles]);
+      setFiles((prevFiles) => [...prevFiles, ...newFiles]);
     } catch (error) {
-      console.error('Error handling file change:', error);
+      console.error("Error handling file change:", error);
     }
   };
 
@@ -90,7 +92,7 @@ const ModelForm = () => {
       updatedFiles.splice(index, 1);
       setFiles(updatedFiles);
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error("Error deleting image:", error);
     }
   };
 
@@ -100,22 +102,28 @@ const ModelForm = () => {
     try {
       setLoading(true);
       if (!brand) {
-        throw new Error('Brand is required');
+        throw new Error("Brand is required");
       }
 
       if (files.length === 0) {
-        throw new Error('At least one image is required');
+        throw new Error("At least one image is required");
       }
 
-      const uploadedImageUrls = await Promise.all(files.map(async (fileData) => {
-        const uploadTaskSnapshot = await uploadImageToStorage(fileData.file, fileData.folderId);
-        return getDownloadURL(uploadTaskSnapshot.ref);
-      }));
+      const uploadedImageUrls = await Promise.all(
+        files.map(async (fileData) => {
+          const uploadTaskSnapshot = await uploadImageToStorage(
+            fileData.file,
+            fileData.folderId
+          );
+          return getDownloadURL(uploadTaskSnapshot.ref);
+        })
+      );
 
       const formData = {
         listingTitle,
         brand,
         model,
+        inStock,
         type,
         condition,
         driveType,
@@ -132,35 +140,36 @@ const ModelForm = () => {
         folderId: generatedId,
         price,
         features: selectedFeatures,
-        safetyFeatures: selectedSafetyFeatures
+        safetyFeatures: selectedSafetyFeatures,
       };
-      await saveFormDataToMongoDB(formData)
-      console.log('formData:', formData);
+      await saveFormDataToMongoDB(formData);
+      console.log("formData:", formData);
 
       // Clear form fields and state after submission
-      setBrand('');
-      setModel('');
-      setType('');
-      setCondition('');
-      setDriveType('');
-      setTransmission('');
-      setFuelType('');
-      setMileage('');
-      setEngineSize('');
-      setYear('')
-      setCylinders('');
-      setColor('');
-      setDoors('');
-      setVin('');
-      setPrice('');
+      setBrand("");
+      setModel("");
+      setType("");
+      setCondition("");
+      setDriveType("");
+      setTransmission("");
+      setFuelType("");
+      setMileage("");
+      setEngineSize("");
+      setYear("");
+      setCylinders("");
+      setColor("");
+      setDoors("");
+      setInStock(false);
+      setVin("");
+      setPrice("");
       setFiles([]);
       setSelectedFeatures([]);
       setSelectedSafetyFeatures([]);
-      setMessage('Data saved successfully.');
+      setMessage("Data saved successfully.");
       setLoading(false);
     } catch (error) {
-      console.error('Error:', error);
-      setMessage(error.message || 'An error occurred while saving data.');
+      console.error("Error:", error);
+      setMessage(error.message || "An error occurred while saving data.");
       setLoading(false);
     }
   };
@@ -171,16 +180,16 @@ const ModelForm = () => {
   };
 
   const saveFormDataToMongoDB = async (formData) => {
-    const response = await fetch('http://localhost:3000/api/carmodels', {
-      method: 'POST',
+    const response = await fetch("http://localhost:3000/api/carmodels", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(formData)
+      body: JSON.stringify(formData),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save data to MongoDB');
+      throw new Error("Failed to save data to MongoDB");
     }
 
     return response.json();
@@ -188,11 +197,18 @@ const ModelForm = () => {
 
   return (
     <div className="p-8 bg-gray-100 rounded-lg shadow-md">
-      <h1 className="text-2xl font-semibold text-gray-800 mb-4">Add New Car Model</h1>
+      <h1 className="text-2xl font-semibold text-gray-800 mb-4">
+        Add New Car Model
+      </h1>
       <form onSubmit={handleSubmit}>
         {/* Listing Title */}
         <div className="mb-4">
-          <label htmlFor="listingTitle" className="block text-sm font-medium text-gray-700">Listing Title:</label>
+          <label
+            htmlFor="listingTitle"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Listing Title:
+          </label>
           <input
             type="text"
             id="listingTitle"
@@ -203,23 +219,34 @@ const ModelForm = () => {
         </div>
         {/* Brand */}
         <div className="mb-4">
-          <label htmlFor="brand" className="block text-sm font-medium text-gray-700">Brand:</label>
+          <label
+            htmlFor="brand"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Brand:
+          </label>
           <select
             id="brand"
             value={brand}
             onChange={handleBrandChange}
             className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-            >
+          >
             <option value="">Select Brand</option>
             {brands.map((brandOption, index) => (
-                <option key={index} value={brandOption.id}>{brandOption.name}</option> // Use brand ID as value
+              <option key={index} value={brandOption.id}>
+                {brandOption.name}
+              </option> // Use brand ID as value
             ))}
-            </select>
-
+          </select>
         </div>
         {/* Model */}
         <div className="mb-4">
-          <label htmlFor="model" className="block text-sm font-medium text-gray-700">Model:</label>
+          <label
+            htmlFor="model"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Model:
+          </label>
           <select
             id="model"
             value={model}
@@ -228,13 +255,35 @@ const ModelForm = () => {
           >
             <option value="">Select Model</option>
             {models.map((modelOption, index) => (
-              <option key={index} value={modelOption}>{modelOption}</option>
+              <option key={index} value={modelOption}>
+                {modelOption}
+              </option>
             ))}
           </select>
         </div>
+        {/* In Stock */}
+        <div className="mb-4">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="inStock"
+              checked={inStock}
+              onChange={(e) => setInStock(e.target.checked)}
+              className="mr-2"
+            />
+            <label
+              htmlFor="inStock"
+              className="block text-sm font-medium text-gray-700"
+            >
+              In Stock
+            </label>
+          </div>
+        </div>
         {/* Type */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Type:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Type:
+          </label>
           {options.types.map((typeOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -250,7 +299,9 @@ const ModelForm = () => {
         </div>
         {/* Condition */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Condition:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Condition:
+          </label>
           {options.conditions.map((conditionOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -266,7 +317,12 @@ const ModelForm = () => {
         </div>
         {/* Year */}
         <div className="mb-4">
-          <label htmlFor="year" className="block text-sm font-medium text-gray-700">Year:</label>
+          <label
+            htmlFor="year"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Year:
+          </label>
           <input
             type="text"
             id="year"
@@ -277,7 +333,12 @@ const ModelForm = () => {
         </div>
         {/* Price */}
         <div className="mb-4">
-          <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price:</label>
+          <label
+            htmlFor="price"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Price:
+          </label>
           <input
             type="text"
             id="price"
@@ -288,7 +349,9 @@ const ModelForm = () => {
         </div>
         {/* Drive Type */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Drive Type:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Drive Type:
+          </label>
           {options.driveTypes.map((driveTypeOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -304,7 +367,9 @@ const ModelForm = () => {
         </div>
         {/* Transmission */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Transmission:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Transmission:
+          </label>
           {options.transmissions.map((transmissionOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -320,7 +385,9 @@ const ModelForm = () => {
         </div>
         {/* Fuel Type */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Fuel Type:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Fuel Type:
+          </label>
           {options.fuelTypes.map((fuelTypeOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -336,7 +403,12 @@ const ModelForm = () => {
         </div>
         {/* Engine Size */}
         <div className="mb-4">
-          <label htmlFor="engineSize" className="block text-sm font-medium text-gray-700">Engine Size:</label>
+          <label
+            htmlFor="engineSize"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Engine Size:
+          </label>
           <input
             type="text"
             id="engineSize"
@@ -347,7 +419,12 @@ const ModelForm = () => {
         </div>
         {/* Mileage */}
         <div className="mb-4">
-          <label htmlFor="mileage" className="block text-sm font-medium text-gray-700">Mileage:</label>
+          <label
+            htmlFor="mileage"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Mileage:
+          </label>
           <input
             type="text"
             id="mileage"
@@ -358,7 +435,9 @@ const ModelForm = () => {
         </div>
         {/* Cylinders */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Cylinders:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Cylinders:
+          </label>
           {options.cylinders.map((cylindersOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -374,7 +453,9 @@ const ModelForm = () => {
         </div>
         {/* Color */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Color:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Color:
+          </label>
           {options.colors.map((colorOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -390,7 +471,9 @@ const ModelForm = () => {
         </div>
         {/* Doors */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Doors:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Doors:
+          </label>
           {options.doors.map((doorsOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -406,7 +489,12 @@ const ModelForm = () => {
         </div>
         {/* VIN */}
         <div className="mb-4">
-          <label htmlFor="VIN" className="block text-sm font-medium text-gray-700">VIN:</label>
+          <label
+            htmlFor="VIN"
+            className="block text-sm font-medium text-gray-700"
+          >
+            VIN:
+          </label>
           <input
             type="text"
             id="VIN"
@@ -417,7 +505,9 @@ const ModelForm = () => {
         </div>
         {/* Features */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Features:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Features:
+          </label>
           {options.features.map((featureOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -444,7 +534,9 @@ const ModelForm = () => {
         </div>
         {/* Safety Features */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">Safety Features:</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Safety Features:
+          </label>
           {options.safetyFeatures.map((safetyFeatureOption, index) => (
             <label key={index} className="inline-flex items-center mt-1 mr-4">
               <input
@@ -456,7 +548,8 @@ const ModelForm = () => {
                   if (e.target.checked) {
                     updatedSafetyFeatures.push(safetyFeatureOption);
                   } else {
-                    const index = updatedSafetyFeatures.indexOf(safetyFeatureOption);
+                    const index =
+                      updatedSafetyFeatures.indexOf(safetyFeatureOption);
                     if (index > -1) {
                       updatedSafetyFeatures.splice(index, 1);
                     }
@@ -471,7 +564,12 @@ const ModelForm = () => {
         </div>
         {/* Images */}
         <div className="mb-4">
-          <label htmlFor="images" className="block text-sm font-medium text-gray-700">Images:</label>
+          <label
+            htmlFor="images"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Images:
+          </label>
           <input
             type="file"
             id="images"
@@ -483,12 +581,12 @@ const ModelForm = () => {
         </div>
         <div className="flex flex-wrap">
           {files.map((fileData, index) => (
-            <div key={index} className='relative mr-4 mb-4'>
+            <div key={index} className="relative mr-4 mb-4">
               <Image
                 src={URL.createObjectURL(fileData.file)}
                 alt={`Uploaded ${index}`}
                 className="mb-2 rounded-lg"
-                style={{ width: '150px', height: '150px' }}
+                style={{ width: "150px", height: "150px" }}
                 width={150}
                 height={150}
               />
@@ -496,9 +594,8 @@ const ModelForm = () => {
                 onClick={() => handleDeleteImage(index)}
                 className="absolute top-0 right-0 p-1 bg-white rounded-full text-zinc flex justify-center items-center"
               >
-                <XMarkIcon className='h-6 w-6  text-zinc hover:text-zinc/[0.9]'/>
+                <XMarkIcon className="h-6 w-6  text-zinc hover:text-zinc/[0.9]" />
               </button>
-
             </div>
           ))}
         </div>
@@ -512,7 +609,7 @@ const ModelForm = () => {
             Save
           </button>
         )}
-        {message && <p className="mt-2 text-sm text-gray-600">{message}</p>}
+        {message && <Link href="/listings"></Link>}
       </form>
     </div>
   );
