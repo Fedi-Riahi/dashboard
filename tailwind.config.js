@@ -13,10 +13,14 @@ module.exports = {
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
       colors: {
-        'porsche': '#EEEFF2',
+        'back': '#f8f8f8',
         'zinc': '#18181B',
       },
     },
+    fontFamily:{
+      'mercedes-bold':'Corporate A',
+      'mercedes-light':'Corporate A BQ'
+    }
   },
   plugins: [],
 };

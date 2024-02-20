@@ -24,6 +24,10 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
   const [year, setYear] = useState(modelData?.year || "");
   const [mileage, setMileage] = useState(modelData?.mileage || "");
   const [engineSize, setEngineSize] = useState(modelData?.engineSize || "");
+  const [transmission, setTransmission] = useState(modelData?.transmission || "");
+  const [driveType, SetdriveType] = useState(modelData?.driveType || "");
+  const [fuelType, setFuelType] = useState(modelData?.fuelType || "");
+  const [cylinders, setCylinders] = useState(modelData?.cylinders || "");
   const [color, setColor] = useState(modelData?.color || "");
   const [doors, setDoors] = useState(modelData?.doors || "");
   const [vin, setVin] = useState(modelData?.vin || "");
@@ -37,6 +41,38 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
   const [message, setMessage] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [existingImageURLs, setExistingImageURLs] = useState([]);
+  const [step, setStep] = useState(1);
+  const [models, setModels] = useState([]);
+
+   // Fetch models from the API
+   useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const response = await fetch("http://localhost:3000/api/carbrand");
+        if (!response.ok) {
+          throw new Error("Failed to fetch models");
+        }
+        const data = await response.json(); // Use response.json() to parse JSON data
+        if (data && data.carBrand && data.carBrand.length > 0) {
+          const models = data.carBrand[0].models; // Assuming only one brand is returned
+          setModels(models);
+        }
+      } catch (error) {
+        console.error("Error fetching models:", error);
+      }
+    };
+    
+
+    fetchModels();
+  }, []);
+
+  const handleNextStep = () => {
+    setStep(step + 1);
+  };
+
+  const handlePreviousStep = () => {
+    setStep(step - 1);
+  };
 
   // Update form field values based on modelData
   useEffect(() => {
@@ -46,6 +82,11 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
       setBrand(modelData.brand || "");
       setType(modelData.type || "");
       setCondition(modelData.condition || "");
+      setTransmission(modelData.transmission || "");
+      SetdriveType(modelData.driveType || "");
+      setFuelType(modelData.fuelType || "");
+      setCylinders(modelData.cylinders || "");
+      setTransmission(modelData.transmission || "");
       setYear(modelData.year || "");
       setMileage(modelData.mileage || "");
       setEngineSize(modelData.engineSize || "");
@@ -166,7 +207,11 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
       const updatedModel = {
         ...modelData,
         model,
+        transmission,
+        cylinders,
+        fuelType,
         inStock,
+        driveType,
         listingTitle,
         brand,
         type,
@@ -206,9 +251,13 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
         Edit Car Model
       </h1>
       <form onSubmit={handleSubmit}>
-        {/* Form fields */}
+        {step === 1 &&(
+          <>
+        <div className="flex items-center gap-2">
+
+  
         {/* Listing Title */}
-        <div className="mb-4">
+        <div className="mb-4 w-full">
           <label
             htmlFor="listingTitle"
             className="block text-sm font-medium text-gray-700"
@@ -220,27 +269,11 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             id="listingTitle"
             value={listingTitle}
             onChange={(e) => setListingTitle(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-          />
-        </div>
-        {/* Model */}
-        <div className="mb-4">
-          <label
-            htmlFor="model"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Model:
-          </label>
-          <input
-            type="text"
-            id="model"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           />
         </div>
         {/* Brand */}
-        <div className="mb-4">
+        <div className="mb-4 w-full">
           <label
             htmlFor="brand"
             className="block text-sm font-medium text-gray-700"
@@ -251,9 +284,36 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             type="text"
             id="brand"
             value={brand}
+            readOnly
             onChange={(e) => setBrand(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500 cursor-not-allowed muted"
           />
+
+        </div>
+          {/* Model */}
+          <div className="mb-4 w-full">
+            <label
+              htmlFor="model"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Model:
+            </label>
+            <select
+              id="model"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            >
+              <option value="">Select Model</option> {/* Default option */}
+              {models.map((modelOption) => (
+                <option key={modelOption} value={modelOption}>
+                  {modelOption}
+                </option>
+              ))}
+            </select>
+          </div>
+
+
         </div>
         {/* In Stock */}
         <div className="mb-4">
@@ -286,7 +346,7 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             id="type"
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           >
             {options.types.map((typeOption) => (
               <option key={typeOption} value={typeOption}>
@@ -307,7 +367,7 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             id="condition"
             value={condition}
             onChange={(e) => setCondition(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           >
             {options.conditions.map((conditionOption) => (
               <option key={conditionOption} value={conditionOption}>
@@ -316,7 +376,23 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             ))}
           </select>
         </div>
-
+          {/* VIN */}
+        <div className="mb-4">
+          <label
+            htmlFor="vin"
+            className="block text-sm font-medium text-gray-700"
+          >
+            VIN:
+          </label>
+          <input
+            type="text"
+            id="vin"
+            value={vin}
+            onChange={(e) => setVin(e.target.value)}
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          />
+        </div>
+        
         {/* Year */}
         <div className="mb-4">
           <label
@@ -330,8 +406,129 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             id="year"
             value={year}
             onChange={(e) => setYear(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           />
+        </div>
+        {/* Price */}
+        <div className="mb-4">
+          <label
+            htmlFor="price"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Price:
+          </label>
+          <input
+            type="number"
+            id="price"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          />
+        </div>
+        </>
+        )}
+
+        {step ===2 &&(
+          <>
+           {/* Engine Size */}
+           <div className="mb-4">
+              <label
+                htmlFor="engineSize"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Engine Size:
+              </label>
+              <input
+                type="text"
+                id="engineSize"
+                value={engineSize}
+                onChange={(e) => setEngineSize(e.target.value)}
+                className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+              />
+            </div>
+        {/* Transmission */}
+        <div className="mb-4">
+          <label
+            htmlFor="transmission"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Transmission:
+          </label>
+          <select
+            id="transmission"
+            value={transmission}
+            onChange={(e) => setTransmission(e.target.value)}
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          >
+            {options.transmissions.map((transmissionOption) => (
+              <option key={transmissionOption} value={transmissionOption}>
+                {transmissionOption}
+              </option>
+            ))}
+          </select>
+        </div>
+        {/* Drive Type */}
+        <div className="mb-4">
+          <label
+            htmlFor="driveType"
+            className="block text-sm font-medium text-gray-700"
+          >
+           Drive Type:
+          </label>
+          <select
+            id="type"
+            value={driveType}
+            onChange={(e) => SetdriveType(e.target.value)}
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          >
+            {options.driveTypes.map((driveTypeOption) => (
+              <option key={driveTypeOption} value={driveTypeOption}>
+                {driveTypeOption}
+              </option>
+            ))}
+          </select>
+        </div>
+        {/* Fuel Type */}
+        <div className="mb-4">
+          <label
+            htmlFor="fuelType"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Fuel Type
+          </label>
+          <select
+            id="fuelType"
+            value={fuelType}
+            onChange={(e) => setFuelType(e.target.value)}
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          >
+            {options.fuelTypes.map((fuelTypeOption) => (
+              <option key={fuelTypeOption} value={fuelTypeOption}>
+                {fuelTypeOption}
+              </option>
+            ))}
+          </select>
+        </div>
+        {/* Cylinders */}
+          <div className="mb-4">
+          <label
+            htmlFor="cylinders"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Cylinders
+          </label>
+          <select
+            id="cylinders"
+            value={cylinders}
+            onChange={(e) => setCylinders(e.target.value)}
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+          >
+            {options.cylinders.map((cylindersOption) => (
+              <option key={cylindersOption} value={cylindersOption}>
+                {cylindersOption}
+              </option>
+            ))}
+          </select>
         </div>
         {/* Mileage */}
         <div className="mb-4">
@@ -346,25 +543,14 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             id="mileage"
             value={mileage}
             onChange={(e) => setMileage(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           />
         </div>
-        {/* Engine Size */}
-        <div className="mb-4">
-          <label
-            htmlFor="engineSize"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Engine Size:
-          </label>
-          <input
-            type="text"
-            id="engineSize"
-            value={engineSize}
-            onChange={(e) => setEngineSize(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-          />
-        </div>
+        </>
+        )}
+        {step === 3 &&(
+          <>
+
         {/* Color */}
         <div className="mb-4">
           <label
@@ -377,7 +563,7 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             id="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           >
             {options.colors.map((colorOption) => (
               <option key={colorOption} value={colorOption}>
@@ -398,7 +584,7 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             id="doors"
             value={doors}
             onChange={(e) => setDoors(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           >
             {options.doors.map((doorOption) => (
               <option key={doorOption} value={doorOption}>
@@ -407,38 +593,7 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             ))}
           </select>
         </div>
-        {/* VIN */}
-        <div className="mb-4">
-          <label
-            htmlFor="vin"
-            className="block text-sm font-medium text-gray-700"
-          >
-            VIN:
-          </label>
-          <input
-            type="text"
-            id="vin"
-            value={vin}
-            onChange={(e) => setVin(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-          />
-        </div>
-        {/* Price */}
-        <div className="mb-4">
-          <label
-            htmlFor="price"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Price:
-          </label>
-          <input
-            type="number"
-            id="price"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-          />
-        </div>
+        
         {/* Features */}
         <div className="mb-4">
           <label
@@ -507,7 +662,11 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             ))}
           </div>
         </div>
-        {/* Add file input for image upload */}
+        </>
+        )}
+        {step === 4 &&(
+          <>
+          {/* Add file input for image upload */}
         <div className="mb-4">
           <label
             htmlFor="images"
@@ -521,7 +680,7 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             onChange={handleFileChange}
             multiple
             accept="image/*"
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           />
         </div>
         {/* Display existing and new images */}
@@ -556,6 +715,30 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
             </div>
           ))}
         </div>
+          </>
+        )}
+        
+        {/* Navigation buttons */}
+        {step !== 1 && (
+          <button
+            type="button"
+            onClick={handlePreviousStep}
+            className="mt-4 mr-4  px-8 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-zinc hover:bg-zinc/[0.9] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+          >
+            Previous
+          </button>
+        )}
+        {step !== 4 && (
+          <button
+            type="button"
+            onClick={handleNextStep}
+            className="mt-3 px-8 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-zinc hover:bg-zinc/[0.9] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+          >
+            Next
+          </button>
+        )}
+        {step === 4 && (
+          <>
         {/* Submit button */}
         <button
           type="submit"
@@ -563,11 +746,14 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
         >
           {loading ? "Updating..." : "Update"}
         </button>
+
         {/* Upload progress */}
         {uploadProgress > 0 && (
           <div className="mt-4">
             <progress value={uploadProgress} max="100" />
           </div>
+        )}
+        </>
         )}
         {/* Error message */}
         {message && <div className="mt-4 text-red-600">{message}</div>}

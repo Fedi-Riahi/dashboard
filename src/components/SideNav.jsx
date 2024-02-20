@@ -2,26 +2,30 @@ import Link from "next/link";
 
 const SideNav = () => {
   return (
-    <div className="flex h-full my-auto mx-auto">
+    <div className="flex h-full mx-auto bg-porsche ">
       {/* Sidebar */}
-      <div className="bg-prosche m-5 border-r border-gray-200 w-52 flex-shrink-0 rounded-lg">
-        <ul>
+      <div className="bg-black/90 p-5 w-72 flex-shrink-0 ">
+        <ul className="flex flex-col  gap-5 ">
           <Link href="/dashboard">
-            <li className="py-2 px-4 mx-2 hover:bg-gray-300 text-zinc rounded-lg ">
+            <li className="py-3 w-full px-8  text-left hover:bg-black/90 text-white rounded-lg ">
               Dashboard
             </li>
           </Link>
           <Link href="/brands">
-            <li className="py-2 px-4 mx-2 hover:bg-gray-300 text-zinc rounded-lg ">
+            <li className="py-3 px-8  hover:bg-black/90 text-white rounded-lg ">
               Brands
             </li>
           </Link>
           <Link href="/listings">
-            <li className="py-2 px-4 mx-2 hover:bg-gray-300 text-zinc rounded-lg ">
+            <li className="py-3 px-8  hover:bg-black/90 text-white rounded-lg ">
               Listing
             </li>
           </Link>
-          {/* Add more links as needed */}
+          <Link href="/trims">
+            <li className="py-3 px-8  hover:bg-black/90 text-white rounded-lg ">
+              Trims
+            </li>
+          </Link>
         </ul>
       </div>
     </div>

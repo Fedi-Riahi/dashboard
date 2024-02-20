@@ -5,8 +5,8 @@ const options = {
     transmissions: ['Automatic', 'Manual', 'Semi-Automatic'],
     fuelTypes: ['Diesel', 'Petrol', 'Electric', 'Hybrid'],
     cylinders: [4, 5, 6, 8, 9, 10],
-    colors: ['Red', 'Blue', 'Green', 'White', 'Black', 'Silver', 'Gray', 'Other'],
-    doors: [2, 4],
+    colors: ['Red', 'Blue', 'Green', 'White', 'Black', 'Silver', 'Gray', 'Yellow','Other'],
+    doors: [2, 4, 6],
     features: [
       '360-degree camera', 'Blind spot alert', 'Bluetooth', 'Cooled seats',
       'Heated seats', 'Keyless start', 'Leather seats', 'LED headlights',

@@ -51,14 +51,49 @@ const carModelSchema = new mongoose.Schema({
     enum: ['Diesel', 'Petrol', 'Electric', 'Hybrid'],
     required: true,
   },
-  mileage: {
-    type: Number,
-    required: true,
-  },
   engineSize: {
     type: Number,
     required: true,
   },
+  horsePower:{
+    type: String,
+    required: true,
+  },
+  torque:{
+    type: String,
+    default: "Not Available"
+  },
+  turbo:{
+    type: String,
+    default: "Not Available"
+  },
+  mileage: {
+    type: Number,
+    required: true,
+  },
+  fuelTank: {
+    type: Number,
+    default: "Not Available"
+  },
+  fuelEconomy: {
+    city:{
+      type: Number,
+      required: true,
+    },
+    highway:{
+      type: Number,
+      required: true,
+  },
+
+},
+trims:[{
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Trims',
+}],
+overview:[{
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Overview',
+}],
   folderId: { // Adding folderId field
     type: String,
     required: true // Adjust as needed, if folderId is optional, remove this line
@@ -90,21 +125,10 @@ const carModelSchema = new mongoose.Schema({
   },
   features: [{
     type: String,
-    enum: [
-      '360-degree camera', 'Blind spot alert', 'Bluetooth', 'Cooled seats',
-      'Heated seats', 'Keyless start', 'Leather seats', 'LED headlights',
-      'Memory seat', 'Navigation System', 'Reversing camera', 'Side airbags',
-      'Sound system', 'Traction Control', 'USB port',
-    ],
+
   }],
   safetyFeatures: [{
     type: String,
-    enum: [
-      'Active head restraints', 'Adaptive headlights', 'Backup camera',
-      'Blind-spot warning', 'Brake assist', 'Forward-collision warning',
-      'Lane keeping assist', 'Parking assist systems', 'Pedestrian detection',
-      'Sideview camera',
-    ],
   }],
 }, { timestamps: true });
 
