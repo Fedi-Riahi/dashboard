@@ -1,11 +1,14 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { uploadImageToStorage } from "@/utils/imageUpload.js";
+import saveFormDataToMongoDB from "@/utils/formSubmit";
+import fetchBrands from "@/utils/fetchBrands";
+import {  getDownloadURL } from "firebase/storage";
 import options from "@/data/options";
 import Link from "next/link";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+
 const generateUniqueId = () => {
   return Math.random().toString(36).substr(2, 9);
 };
@@ -16,7 +19,6 @@ const ModelForm = () => {
   const [model, setModel] = useState("");
   const [models, setModels] = useState([]);
   const [inStock, setInStock] = useState(false);
-
   const [brand, setBrand] = useState("");
   const [type, setType] = useState("");
   const [condition, setCondition] = useState("");
@@ -35,10 +37,10 @@ const ModelForm = () => {
   const [generatedId, setGeneratedId] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const imageUploadRef = useRef(null);
   const [selectedFeatures, setSelectedFeatures] = useState([]);
   const [selectedSafetyFeatures, setSelectedSafetyFeatures] = useState([]);
   const [step, setStep] = useState(1);
+  const imageUploadRef = useRef(null);
 
   const handleNextStep = () => {
     setStep(step + 1);
@@ -49,21 +51,9 @@ const ModelForm = () => {
   };
 
   useEffect(() => {
-    // Fetch brands and their models from the API
-    const fetchBrands = async () => {
-      try {
-        const response = await fetch("http://localhost:3000/api/carbrand");
-        if (!response.ok) {
-          throw new Error("Failed to fetch brands");
-        }
-        const data = await response.json();
-        setBrands(data.carBrand);
-      } catch (error) {
-        console.error("Error fetching brands:", error);
-      }
-    };
-
-    fetchBrands();
+    fetchBrands()
+      .then(data => setBrands(data))
+      .catch(error => console.error("Error fetching brands:", error));
   }, []);
 
   const handleBrandChange = (e) => {
@@ -79,29 +69,18 @@ const ModelForm = () => {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e, folderName) => {
     try {
       const selectedFiles = e.target.files;
-      const newGeneratedId = generateUniqueId();
-      setGeneratedId(newGeneratedId);
-
       const newFiles = Array.from(selectedFiles).map((file) => ({
         file,
-        folderId: newGeneratedId,
+        folderId: generatedId,
+        fileName: `${folderName}_${file.name}`,
+        folderName: folderName,
       }));
       setFiles((prevFiles) => [...prevFiles, ...newFiles]);
     } catch (error) {
       console.error("Error handling file change:", error);
-    }
-  };
-
-  const handleDeleteImage = (index) => {
-    try {
-      const updatedFiles = [...files];
-      updatedFiles.splice(index, 1);
-      setFiles(updatedFiles);
-    } catch (error) {
-      console.error("Error deleting image:", error);
     }
   };
 
@@ -118,11 +97,14 @@ const ModelForm = () => {
         throw new Error("At least one image is required");
       }
 
+      const newGeneratedId = generateUniqueId();
+
       const uploadedImageUrls = await Promise.all(
         files.map(async (fileData) => {
           const uploadTaskSnapshot = await uploadImageToStorage(
             fileData.file,
-            fileData.folderId
+            newGeneratedId,
+            fileData.folderName
           );
           return getDownloadURL(uploadTaskSnapshot.ref);
         })
@@ -135,8 +117,8 @@ const ModelForm = () => {
         inStock,
         type,
         condition,
-        driveType,
         year,
+        driveType,
         transmission,
         fuelType,
         mileage,
@@ -145,16 +127,31 @@ const ModelForm = () => {
         color,
         doors,
         vin,
-        images: uploadedImageUrls,
-        folderId: generatedId,
+        interiorImages: [],
+        coverImage: [],
+        exteriorImages: [],
+        cardImages: [],
+        folderId: newGeneratedId,
         price,
         features: selectedFeatures,
         safetyFeatures: selectedSafetyFeatures,
       };
+
+      uploadedImageUrls.forEach((imageUrl) => {
+        if (imageUrl.includes("interior")) {
+          formData.interiorImages.push(imageUrl);
+        } else if (imageUrl.includes("exterior")) {
+          formData.exteriorImages.push(imageUrl);
+        } else if (imageUrl.includes("card")) {
+          formData.cardImages.push(imageUrl);
+        } else if (imageUrl.includes("cover")) {
+          formData.coverImage.push(imageUrl);
+        }
+      });
+
       await saveFormDataToMongoDB(formData);
       console.log("formData:", formData);
 
-      // Clear form fields and state after submission
       setBrand("");
       setModel("");
       setType("");
@@ -183,26 +180,6 @@ const ModelForm = () => {
     }
   };
 
-  const uploadImageToStorage = async (file, folderId) => {
-    const storageRef = ref(storage, `images/${folderId}/${file.name}`);
-    return uploadBytesResumable(storageRef, file);
-  };
-
-  const saveFormDataToMongoDB = async (formData) => {
-    const response = await fetch("http://localhost:3000/api/carmodels", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to save data to MongoDB");
-    }
-
-    return response.json();
-  };
 
   return (
     <div className="p-8 bg-gray-100 rounded-lg shadow-md">
@@ -674,56 +651,127 @@ const ModelForm = () => {
         </div>
         </>
       )}
-      {step === 4 &&(
-        <>
+{step === 4 && (
+  <>
+    {/* Interior Images */}
+    <div className="mb-4">
+      <label
+        htmlFor="interiorImages"
+        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+      >
+        Upload Interior Images
+      </label>
+      <input
+        type="file"
+        id="interiorImages"
+        onChange={(e) => handleFileChange(e, "interior")}
+        multiple
+        accept="image/*"
+        className="hidden"
+      />
+      <label
+        htmlFor="interiorImages"
+        className="inline-block px-8 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-indigo-600 border border-transparent rounded-lg cursor-pointer hover:bg-indigo-700 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700"
+      >
+        Select Interior Files
+      </label>
+    </div>
+    {/* Cover Images */}
+    <div className="mb-4">
+      <label
+        htmlFor="coverImage"
+        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+      >
+        Upload Interior Images
+      </label>
+      <input
+        type="file"
+        id="coverImage"
+        onChange={(e) => handleFileChange(e, "cover")}
+        multiple
+        accept="image/*"
+        className="hidden"
+      />
+      <label
+        htmlFor="coverImage"
+        className="inline-block px-8 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-indigo-600 border border-transparent rounded-lg cursor-pointer hover:bg-indigo-700 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700"
+      >
+        Select Cover Image
+      </label>
+    </div>
 
-        {/* Images */}
-        <div className="mb-4">
-          <label
-            htmlFor="images"
-            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-          >
-            Upload Images
-          </label>
-          <input
-            type="file"
-            id="images"
-            onChange={handleFileChange}
-            multiple
-            accept="image/*"
-            className="hidden"
+    {/* Exterior Images */}
+    <div className="mb-4">
+      <label
+        htmlFor="exteriorImages"
+        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+      >
+        Upload Exterior Images
+      </label>
+      <input
+        type="file"
+        id="exteriorImages"
+        onChange={(e) => handleFileChange(e, "exterior")}
+        multiple
+        accept="image/*"
+        className="hidden"
+      />
+      <label
+        htmlFor="exteriorImages"
+        className="inline-block px-8 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-indigo-600 border border-transparent rounded-lg cursor-pointer hover:bg-indigo-700 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700"
+      >
+        Select Exterior Files
+      </label>
+    </div>
+
+    {/* Card Images */}
+    <div className="mb-4">
+      <label
+        htmlFor="cardImages"
+        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+      >
+        Upload Card Images
+      </label>
+      <input
+        type="file"
+        id="cardImages"
+        onChange={(e) => handleFileChange(e, "card")}
+        multiple
+        accept="image/*"
+        className="hidden"
+      />
+      <label
+        htmlFor="cardImages"
+        className="inline-block px-8 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-indigo-600 border border-transparent rounded-lg cursor-pointer hover:bg-indigo-700 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700"
+      >
+        Select Card Files
+      </label>
+    </div>
+
+    {/* Display uploaded images */}
+    <div className="flex flex-wrap">
+      {files.map((fileData, index) => (
+        <div key={index} className="relative mr-4 mb-4">
+          <Image
+            src={URL.createObjectURL(fileData.file)}
+            alt={`Uploaded ${index}`}
+            className="mb-2 rounded-lg"
+            style={{ width: "150px", height: "150px" }}
+            width={150}
+            height={150}
           />
-          <label
-            htmlFor="images"
-            className="inline-block px-8 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-indigo-600 border border-transparent rounded-lg cursor-pointer hover:bg-indigo-700 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700"
+          <button
+            onClick={() => handleDeleteImage(index)}
+            className="absolute top-0 right-0 p-1 bg-white rounded-full text-zinc flex justify-center items-center"
           >
-            Select Files
-          </label>
+            <XMarkIcon className="h-6 w-6 text-zinc hover:text-zinc/[0.9]" />
+          </button>
         </div>
+      ))}
+    </div>
+  </>
+)}
 
-
-        <div className="flex flex-wrap">
-          {files.map((fileData, index) => (
-            <div key={index} className="relative mr-4 mb-4">
-              <Image
-                src={URL.createObjectURL(fileData.file)}
-                alt={`Uploaded ${index}`}
-                className="mb-2 rounded-lg"
-                style={{ width: "150px", height: "150px" }}
-                width={150}
-                height={150}
-              />
-              <button
-                onClick={() => handleDeleteImage(index)}
-                className="absolute top-0 right-0 p-1 bg-white rounded-full text-zinc flex justify-center items-center"
-              >
-                <XMarkIcon className="h-6 w-6  text-zinc hover:text-zinc/[0.9]" />
-              </button>
-            </div>
-          ))}
-        </div>
-        </>
-      )}
       {/* Navigation buttons */}
       {step !== 1 && (
           <button
@@ -746,14 +794,6 @@ const ModelForm = () => {
         {step === 4 && (
         <>
 
-          <>
-            <button
-              type="submit"
-              className="muted cursor-not-allowed mt-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-zinc hover:bg-zinc/[0.9] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
-            >
-              Save
-            </button>
-          </>
 
         {!loading && files.length > 0 && (
           <button

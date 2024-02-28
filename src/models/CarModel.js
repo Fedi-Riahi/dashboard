@@ -55,37 +55,11 @@ const carModelSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  horsePower:{
-    type: String,
-    required: true,
-  },
-  torque:{
-    type: String,
-    default: "Not Available"
-  },
-  turbo:{
-    type: String,
-    default: "Not Available"
-  },
   mileage: {
     type: Number,
     required: true,
   },
-  fuelTank: {
-    type: Number,
-    default: "Not Available"
-  },
-  fuelEconomy: {
-    city:{
-      type: Number,
-      required: true,
-    },
-    highway:{
-      type: Number,
-      required: true,
-  },
 
-},
 trims:[{
   type: mongoose.Schema.Types.ObjectId,
   ref: 'Trims',
@@ -117,7 +91,16 @@ overview:[{
     type: String,
     required: true,
   },
-  images: [{
+  interiorImages: [{
+    type: String, // Assuming image URLs are stored as strings
+  }],
+  exteriorImages: [{
+    type: String, // Assuming image URLs are stored as strings
+  }],
+  cardImages: [{
+    type: String, // Assuming image URLs are stored as strings
+  }],
+  coverImage: [{
     type: String, // Assuming image URLs are stored as strings
   }],
   description: {

@@ -29,7 +29,7 @@ export async function PUT(request, { params }) {
 
   try {
     const requestData = await request.json();
-    const { inStock,folderId, listingTitle, brand, model, condition, type, price, year, driveType, transmission, fuelType, mileage, engineSize, cylinders, color, doors, vin, description, features, safetyFeatures, images, internImages } = requestData;
+    const { inStock,folderId, listingTitle, brand, model, condition, type, price, year, driveType, transmission, fuelType, mileage, engineSize, cylinders, color, doors, vin, description, features, safetyFeatures,cardImages,exteriorImages,interiorImages } = requestData;
 
     await connectDatabase();
 
@@ -56,8 +56,9 @@ export async function PUT(request, { params }) {
       description,
       features,
       safetyFeatures,
-      images,
-      internImages
+      interiorImages,
+      exteriorImages,
+      cardImages,
     });
 
     return NextResponse.json({ message: "Model updated successfully" }, { status: 200 });

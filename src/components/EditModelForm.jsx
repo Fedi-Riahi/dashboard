@@ -1,248 +1,227 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import {
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
+"use client"
+import React, { useState, useRef, useEffect } from "react";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "@/lib/firebase";
+import options from "@/data/options";
+import Link from "next/link";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import options from "@/data/options";
+const generateUniqueId = () => {
+  return Math.random().toString(36).substr(2, 9);
+};
 
-const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
-  const { folderId } = modelData || {};
-  const [model, setModel] = useState(modelData?.model || "");
-  const [inStock, setInStock] = useState(modelData?.inStock || false);
-  const [brand, setBrand] = useState(modelData?.brand || "");
-  const [listingTitle, setListingTitle] = useState(
-    modelData?.listingTitle || ""
-  );
-  const [type, setType] = useState(modelData?.type || "");
-  const [condition, setCondition] = useState(modelData?.condition || "");
-  const [year, setYear] = useState(modelData?.year || "");
-  const [mileage, setMileage] = useState(modelData?.mileage || "");
-  const [engineSize, setEngineSize] = useState(modelData?.engineSize || "");
-  const [transmission, setTransmission] = useState(modelData?.transmission || "");
-  const [driveType, SetdriveType] = useState(modelData?.driveType || "");
-  const [fuelType, setFuelType] = useState(modelData?.fuelType || "");
-  const [cylinders, setCylinders] = useState(modelData?.cylinders || "");
-  const [color, setColor] = useState(modelData?.color || "");
-  const [doors, setDoors] = useState(modelData?.doors || "");
-  const [vin, setVin] = useState(modelData?.vin || "");
-  const [price, setPrice] = useState(modelData?.price || "");
-  const [features, setFeatures] = useState(modelData?.features || []);
-  const [safetyFeatures, setSafetyFeatures] = useState(
-    modelData?.safetyFeatures || []
-  );
-  const [loading, setLoading] = useState(false);
-  const [files, setFiles] = useState([]);
-  const [message, setMessage] = useState("");
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [existingImageURLs, setExistingImageURLs] = useState([]);
-  const [step, setStep] = useState(1);
+const EditModelForm = ({ modelData }) => {
+  const [listingTitle, setListingTitle] = useState(modelData.listingTitle);
+  const [brands, setBrands] = useState([]);
+  const [model, setModel] = useState(modelData.model);
   const [models, setModels] = useState([]);
+  const [inStock, setInStock] = useState(modelData.inStock);
+  const [brand, setBrand] = useState(modelData.brand);
+  const [type, setType] = useState(modelData.type);
+  const [condition, setCondition] = useState(modelData.condition);
+  const [year, setYear] = useState(modelData.year);
+  const [driveType, setDriveType] = useState(modelData.driveType);
+  const [transmission, setTransmission] = useState(modelData.transmission);
+  const [fuelType, setFuelType] = useState(modelData.fuelType);
+  const [mileage, setMileage] = useState(modelData.mileage);
+  const [engineSize, setEngineSize] = useState(modelData.engineSize);
+  const [cylinders, setCylinders] = useState(modelData.cylinders);
+  const [color, setColor] = useState(modelData.color);
+  const [doors, setDoors] = useState(modelData.doors);
+  const [vin, setVin] = useState(modelData.vin);
+  const [price, setPrice] = useState(modelData.price);
+  const [interiorImages, setInteriorImages] = useState(modelData.interiorImages);
+  const [exteriorImages, setExteriorImages] = useState(modelData.exteriorImages);
+  const [cardImages, setCardImages] = useState(modelData.cardImages);
+  const [coverImage, setCoverImage] = useState(modelData.coverImage);
+  const [files, setFiles] = useState([]);
+  const [generatedId, setGeneratedId] = useState(modelData.folderId);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-   // Fetch models from the API
-   useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        const response = await fetch("http://localhost:3000/api/carbrand");
-        if (!response.ok) {
-          throw new Error("Failed to fetch models");
-        }
-        const data = await response.json(); // Use response.json() to parse JSON data
-        if (data && data.carBrand && data.carBrand.length > 0) {
-          const models = data.carBrand[0].models; // Assuming only one brand is returned
-          setModels(models);
-        }
-      } catch (error) {
-        console.error("Error fetching models:", error);
+  const [step, setStep] = useState(1);
+  const imageUploadRef = useRef(null);
+// State for selected features and safety features
+const [features, setFeatures] = useState(modelData.features || []);
+const [safetyFeatures, setSafetyFeatures] = useState(modelData.safetyFeatures || []);
+
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+ 
+// Fetch models from the API
+useEffect(() => {
+  const fetchModels = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/api/carbrand");
+      if (!response.ok) {
+        throw new Error("Failed to fetch models");
       }
-    };
-    
-
-    fetchModels();
-  }, []);
-
-  const handleNextStep = () => {
-    setStep(step + 1);
-  };
-
-  const handlePreviousStep = () => {
-    setStep(step - 1);
-  };
-
-  // Update form field values based on modelData
-  useEffect(() => {
-    if (modelData) {
-      setModel(modelData.model || "");
-      setInStock(modelData.inStock || false);
-      setBrand(modelData.brand || "");
-      setType(modelData.type || "");
-      setCondition(modelData.condition || "");
-      setTransmission(modelData.transmission || "");
-      SetdriveType(modelData.driveType || "");
-      setFuelType(modelData.fuelType || "");
-      setCylinders(modelData.cylinders || "");
-      setTransmission(modelData.transmission || "");
-      setYear(modelData.year || "");
-      setMileage(modelData.mileage || "");
-      setEngineSize(modelData.engineSize || "");
-      setColor(modelData.color || "");
-      setDoors(modelData.doors || "");
-      setVin(modelData.vin || "");
-      setPrice(modelData.price || "");
-      setFeatures(modelData.features || []);
-      setSafetyFeatures(modelData.safetyFeatures || []);
+      const data = await response.json(); // Use response.json() to parse JSON data
+      if (data && data.carBrand && data.carBrand.length > 0) {
+        const models = data.carBrand[0].models; // Assuming only one brand is returned
+        setModels(models);
+      }
+    } catch (error) {
+      console.error("Error fetching models:", error);
     }
-  }, [modelData]);
+  };
+  
 
-  // Effect to update existingImageURLs whenever modelData.images changes
-  useEffect(() => {
-    if (modelData?.images) {
-      setExistingImageURLs(modelData.images);
-    }
-  }, [modelData]);
+  fetchModels();
+}, []);
+  
 
-  // Function to handle file change
-  const handleFileChange = async (e) => {
+
+
+  const handleFileChange = (e, folderName) => {
     try {
       const selectedFiles = e.target.files;
-      const newFiles = Array.from(selectedFiles).map((file) => {
-        return {
-          file,
-          fileName: file.name,
-          previewURL: URL.createObjectURL(file),
-        };
-      });
+      const newFiles = Array.from(selectedFiles).map((file) => ({
+        file,
+        folderId: generatedId, // Use the same folder ID for all images
+        fileName: `${folderName}_${file.name}`, // Prepend folder name to file name
+        folderName: folderName, // Store folder name for reference
+      }));
       setFiles((prevFiles) => [...prevFiles, ...newFiles]);
     } catch (error) {
       console.error("Error handling file change:", error);
     }
   };
 
-  const handleDeleteImage = async (index, event) => {
+  const handleDeleteImage = async (imageName, folderName) => {
     try {
-      event.stopPropagation();
-      event.preventDefault();
-
-      if (!folderId) {
-        console.error("Folder ID is null.");
-        return;
-      }
-
-      const imageToDelete = existingImageURLs[index];
-      const decodedImageURL = decodeURIComponent(imageToDelete);
-      const imageUrlParts = decodedImageURL.split("?");
-      const imageUrl = imageUrlParts[0];
-      const imageName = imageUrl.split("/").pop();
-
-      const storageRef = ref(storage, `images/${folderId}/${imageName}`);
-
-      // Delete image from Firebase Storage
+      // Construct the correct path for deletion
+      const imagePath = imageName;
+      const storageRef = ref(storage, `images/${generatedId}/${folderName}/${imagePath}`);
+      
+      // Delete the object
       await deleteObject(storageRef);
-
-      // Remove the deleted image URL from existingImageURLs state
-      setExistingImageURLs((prevURLs) =>
-        prevURLs.filter((url, idx) => idx !== index)
-      );
-
-      // Remove the deleted image URL from modelData
-      const updatedImages = existingImageURLs.filter(
-        (image, idx) => idx !== index
-      );
-      const updatedModelData = {
-        ...modelData,
-        images: updatedImages,
-      };
-
-      // Update the model data in the parent component
-      setModelData(updatedModelData);
+  
+      // Update the state based on the folderName
+      if (folderName === "interior") {
+        setInteriorImages(interiorImages.filter((image) => image !== imageName));
+      } else if (folderName === "exterior") {
+        setExteriorImages(exteriorImages.filter((image) => image !== imageName));
+      } else if (folderName === "card") {
+        setCardImages(cardImages.filter((image) => image !== imageName));
+      } else if (folderName === "cover") {
+        setCoverImage(coverImage.filter((image) => image !== imageName));
+      }
     } catch (error) {
       console.error("Error deleting image:", error);
     }
   };
+  
+  
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       setLoading(true);
+      if (!brand) {
+        throw new Error("Brand is required");
+      }
 
-      // Upload all files
-      const uploadedImages = await Promise.all(
-        files.map(async (file) => {
-          const storageRef = ref(
-            storage,
-            `images/${folderId}/${file.fileName}`
-          ); // Access file name using file.fileName
-          const uploadTask = uploadBytesResumable(storageRef, file.file); // Access file using file.file
 
-          // Track upload progress
-          uploadTask.on(
-            "state_changed",
-            (snapshot) => {
-              const progress =
-                (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setUploadProgress(progress);
-            },
-            (error) => {
-              console.error("Error uploading image:", error);
-              setLoading(false);
-            },
-            () => {
-              setLoading(false);
-              setUploadProgress(0);
-            }
+
+      const uploadedImageUrls = await Promise.all(
+        files.map(async (fileData) => {
+          const uploadTaskSnapshot = await uploadImageToStorage(
+            fileData.file,
+            generatedId, // Use the existing folderId
+            fileData.folderName // Pass the folderName when uploading
           );
-
-          await uploadTask;
-          const downloadURL = await getDownloadURL(storageRef);
-          return downloadURL;
+          return getDownloadURL(uploadTaskSnapshot.ref);
         })
       );
 
-      // Update model data with uploaded images
-      const updatedModel = {
-        ...modelData,
-        model,
-        transmission,
-        cylinders,
-        fuelType,
-        inStock,
-        driveType,
+      const formData = {
         listingTitle,
         brand,
+        model,
+        inStock,
         type,
         condition,
         year,
+        driveType,
+        transmission,
+        fuelType,
         mileage,
         engineSize,
+        cylinders,
         color,
         doors,
         vin,
+        interiorImages,
+        exteriorImages,
+        cardImages,
+        coverImage,
+        folderId: generatedId, // Include folderId in formData
         price,
-        features,
-        safetyFeatures,
-        images: [...(modelData.images || []), ...uploadedImages],
+        features: features,
+        safetyFeatures: safetyFeatures,
       };
 
-      // Update model data in the database using the model ID
-      await fetch(`http://localhost:3000/api/carmodels/${modelData._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedModel),
+      uploadedImageUrls.forEach((imageUrl) => {
+        if (imageUrl.includes("interior")) {
+          formData.interiorImages.push(imageUrl);
+        } else if (imageUrl.includes("exterior")) {
+          formData.exteriorImages.push(imageUrl);
+        } else if (imageUrl.includes("card")) {
+          formData.cardImages.push(imageUrl);
+        } else if (imageUrl.includes("cover")) {
+          formData.coverImage.push(imageUrl);
+        }
       });
 
-      // Call onUpdate to update the model in the parent component
-      onUpdate(updatedModel);
-      onClose();
+      await updateFormDataInMongoDB(formData); // Update existing data in MongoDB
+      console.log("formData:", formData);
+
+      setMessage("Data updated successfully.");
+      setLoading(false);
     } catch (error) {
-      console.error("Error updating model:", error);
+      console.error("Error:", error);
+      setMessage(error.message || "An error occurred while updating data.");
+      setLoading(false);
     }
+  };
+
+  const uploadImageToStorage = async (file, folderId, folderName) => {
+    try {
+      let storagePath = `images/${folderId}/${folderName}/`;
+      const storageRef = ref(storage, storagePath + file.name);
+      const uploadTaskSnapshot = await uploadBytesResumable(storageRef, file);
+      console.log("Image uploaded successfully:", uploadTaskSnapshot);
+      return uploadTaskSnapshot;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      throw error; // Re-throw the error to handle it in the calling function
+    }
+  };
+
+  const updateFormDataInMongoDB = async (formData) => {
+    const response = await fetch(`http://localhost:3000/api/carmodels/${modelData._id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update data in MongoDB");
+    }
+
+    return response.json();
+  };
+  const handleNextStep = () => {
+    setStep(step + 1);
+  };
+
+  const handlePreviousStep = () => {
+    setStep(step - 1);
   };
 
   return (
@@ -291,27 +270,27 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
 
         </div>
           {/* Model */}
-          <div className="mb-4 w-full">
-            <label
-              htmlFor="model"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Model:
-            </label>
-            <select
-              id="model"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-            >
-              <option value="">Select Model</option> {/* Default option */}
-              {models.map((modelOption) => (
-                <option key={modelOption} value={modelOption}>
-                  {modelOption}
-                </option>
-              ))}
-            </select>
-          </div>
+<div className="mb-4 w-full">
+  <label
+    htmlFor="model"
+    className="block text-sm font-medium text-gray-700"
+  >
+    Model:
+  </label>
+  <select
+    id="model"
+    value={model}
+    onChange={(e) => setModel(e.target.value)}
+    className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+  >
+    <option value="">Select Model</option> {/* Default option */}
+    {models.map((modelOption) => (
+      <option key={modelOption} value={modelOption}>
+        {modelOption}
+      </option>
+    ))}
+  </select>
+</div>
 
 
         </div>
@@ -594,8 +573,8 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
           </select>
         </div>
         
-        {/* Features */}
-        <div className="mb-4">
+       {/* Features */}
+       <div className="mb-4">
           <label
             htmlFor="features"
             className="block text-sm font-medium text-gray-700"
@@ -664,102 +643,96 @@ const EditModelForm = ({ modelData, onClose, onUpdate, setModelData }) => {
         </div>
         </>
         )}
-        {step === 4 &&(
+           {step === 4 &&(
           <>
-          {/* Add file input for image upload */}
-        <div className="mb-4">
-          <label
-            htmlFor="images"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Images:
-          </label>
-          <input
-            type="file"
-            id="images"
-            onChange={handleFileChange}
-            multiple
-            accept="image/*"
-            className="mt-1 p-3 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-          />
-        </div>
-        {/* Display existing and new images */}
-        <div className="flex space-x-4 mb-4">
-          {/* Display existing images */}
-          {existingImageURLs.map((image, index) => (
-            <div key={index} className="relative w-20 h-20">
-              <button
-                className="absolute top-0 right-0 z-10 p-1 bg-gray-800 text-white rounded-full"
-                onClick={(event) => handleDeleteImage(index, event)}
-              >
-                <XMarkIcon className="w-4 h-4" />
-              </button>
-              <Image
-                src={image}
-                alt={`Uploaded Image ${index}`}
-                layout="fill"
-                objectFit="cover"
-              />
-            </div>
-          ))}
-
-          {/* Display new images */}
-          {files.map((file, index) => (
-            <div key={index} className="relative w-20 h-20">
-              <Image
-                src={file.previewURL}
-                alt={`New Image ${index}`}
-                layout="fill"
-                objectFit="cover"
-              />
-            </div>
-          ))}
-        </div>
-          </>
-        )}
-        
-        {/* Navigation buttons */}
-        {step !== 1 && (
-          <button
-            type="button"
-            onClick={handlePreviousStep}
-            className="mt-4 mr-4  px-8 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-zinc hover:bg-zinc/[0.9] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
-          >
-            Previous
-          </button>
-        )}
-        {step !== 4 && (
-          <button
-            type="button"
-            onClick={handleNextStep}
-            className="mt-3 px-8 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-zinc hover:bg-zinc/[0.9] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
-          >
-            Next
-          </button>
-        )}
-        {step === 4 && (
-          <>
-        {/* Submit button */}
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:bg-blue-600"
-        >
-          {loading ? "Updating..." : "Update"}
-        </button>
-
-        {/* Upload progress */}
-        {uploadProgress > 0 && (
-          <div className="mt-4">
-            <progress value={uploadProgress} max="100" />
+        <label htmlFor="interiorImages">Interior Images:</label>
+        <input type="file" id="interiorImages" multiple onChange={(e) => handleFileChange(e, "interior")} />
+        {interiorImages.map((image, index) => (
+          <div key={index}>
+            <img src={image} alt={`Interior ${index}`} />
+            <button type="button" onClick={() => handleDeleteImage(image, "interior")}>
+              <XMarkIcon className="bg-gray-800 h-[20px] w-[20px]"/>
+            </button>
           </div>
-        )}
-        </>
-        )}
-        {/* Error message */}
-        {message && <div className="mt-4 text-red-600">{message}</div>}
-      </form>
-    </div>
-  );
+        ))}
+        <label htmlFor="coverImage">Cover Image:</label>
+        <input type="file" id="coverImage" multiple onChange={(e) => handleFileChange(e, "cover")} />
+        {coverImage.map((image, index) => (
+          <div key={index}>
+            <img src={image} alt={`Cover ${index}`} />
+            <button type="button" onClick={() => handleDeleteImage(image, "cover")}>
+              <XMarkIcon className="bg-gray-800 h-[20px] w-[20px]"/>
+            </button>
+          </div>
+        ))}
+      <div>
+        <label htmlFor="exteriorImages">Exterior Images:</label>
+        <input type="file" id="exteriorImages" multiple onChange={(e) => handleFileChange(e, "exterior")} />
+        {exteriorImages.map((image, index) => (
+          <div key={index}>
+            <img src={image} alt={`Exterior ${index}`} />
+            <button type="button" onClick={() => handleDeleteImage(image, "exterior")}>
+              <XMarkIcon />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div>
+        <label htmlFor="cardImages">Card Images:</label>
+        <input type="file" id="cardImages" multiple onChange={(e) => handleFileChange(e, "card")} />
+        {cardImages.map((image, index) => (
+          <div key={index}>
+            <img src={image} alt={`Card ${index}`} />
+            <button type="button" onClick={() => handleDeleteImage(image, "card")}>
+              <XMarkIcon />
+            </button>
+          </div>
+        ))}
+      </div>
+      </>)}
+
+       {/* Navigation buttons */}
+       {step !== 1 && (
+        <button
+          type="button"
+          onClick={handlePreviousStep}
+          className="mt-4 mr-4  px-8 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-zinc hover:bg-zinc/[0.9] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+        >
+          Previous
+        </button>
+      )}
+      {step !== 4 && (
+        <button
+          type="button"
+          onClick={handleNextStep}
+          className="mt-3 px-8 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-zinc hover:bg-zinc/[0.9] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500"
+        >
+          Next
+        </button>
+      )}
+      {step === 4 && (
+        <>
+      {/* Submit button */}
+      <button
+        type="submit"
+        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:bg-blue-600"
+      >
+        {loading ? "Updating..." : "Update"}
+      </button>
+
+      {/* Upload progress */}
+      {uploadProgress > 0 && (
+        <div className="mt-4">
+          <progress value={uploadProgress} max="100" />
+        </div>
+      )}
+      </>
+      )}
+      {/* Error message */}
+      {message && <div className="mt-4 text-red-600">{message}</div>}
+    </form>
+  </div>
+);
 };
 
 export default EditModelForm;
