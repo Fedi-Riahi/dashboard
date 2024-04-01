@@ -12,14 +12,14 @@ const generateUniqueId = () => {
   return Math.random().toString(36).substr(2, 9);
 };
 
-const predefinedCategories = ['Engine', 'Transmission', 'Brakes', 'Suspension', 'Electrical', 'Interior', 'Exterior', 'Other'];
+const predefinedCategories = ['Engine', 'Transmission', 'Brakes', 'Suspension', 'Electrical', 'Interior', 'Exterior','Filters', 'Other'];
 
 const CarPartsForm = () => {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [stock, setStock] = useState("");
   const [manufacturer, setManufacturer] = useState("");
   const [modelNumber, setModelNumber] = useState("");
   const [year, setYear] = useState("");
@@ -103,7 +103,7 @@ const CarPartsForm = () => {
         category,
         description,
         price: parseFloat(price),
-        quantity: parseInt(quantity),
+        stock: parseInt(stock),
         manufacturer,
         modelNumber,
         year: parseInt(year),
@@ -120,7 +120,7 @@ const CarPartsForm = () => {
       setCategory("");
       setDescription("");
       setPrice("");
-      setQuantity("");
+      setStock("");
       setManufacturer("");
       setModelNumber("");
       setYear("");
@@ -240,8 +240,8 @@ const CarPartsForm = () => {
             id="quantity"
             type="number"
             min="0"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
             required
             className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500"
           />

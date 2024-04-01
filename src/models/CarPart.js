@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 // Define predefined categories
-const predefinedCategories = ['Engine', 'Transmission', 'Brakes', 'Suspension', 'Electrical', 'Interior', 'Exterior', 'Other'];
+const predefinedCategories = ['Engine', 'Transmission', 'Brakes', 'Suspension', 'Electrical', 'Interior', 'Exterior','Filters', 'Other'];
 
 const carPartSchema = new Schema({
   name: {
@@ -19,7 +19,7 @@ const carPartSchema = new Schema({
     type: Number,
     required: true
   },
-  quantity: {
+  stock: {
     type: Number,
     required: true
   },

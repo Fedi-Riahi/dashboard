@@ -29,7 +29,7 @@ export async function PUT(request, { params }) {
   
     try {
       const requestData = await request.json();
-      const { name, category, description, price, quantity, manufacturer, modelNumber, year, compatibleCarModels, images, specifications } = requestData;
+      const { name, category, description, price, stock, manufacturer, modelNumber, year, compatibleCarModels, images, specifications } = requestData;
   
       await connectDatabase();
   
@@ -39,7 +39,7 @@ export async function PUT(request, { params }) {
         category,
         description,
         price,
-        quantity,
+        stock,
         manufacturer,
         modelNumber,
         year,

@@ -31,6 +31,16 @@ const SideNav = () => {
               Car Parts
             </li>
           </Link>
+          <Link href="/carorders">
+            <li className="py-3 px-8  hover:bg-black/90 text-white rounded-lg ">
+              Car Orders
+            </li>
+          </Link>
+          <Link href="/appointment">
+            <li className="py-3 px-8  hover:bg-black/90 text-white rounded-lg ">
+              Appointments
+            </li>
+          </Link>
         </ul>
       </div>
     </div>

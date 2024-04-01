@@ -13,7 +13,7 @@ const Navbar = () => {
           >
             <Image src="/mercedes.png" alt="Mercedes"  width={50} height={50} />
           </Link>
-          <span className="font-mercedes-light text-xl  text-white">Mercedes-Benz</span>
+          <span className="font-mercedes-light text-xl  text-white">Sfax Silver Star</span>
         </div>
 
         {/* Search input */}

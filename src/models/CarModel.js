@@ -16,7 +16,7 @@ const carModelSchema = new mongoose.Schema({
   },
   inStock:{
     type: Boolean,
-    required: true
+    required: true,
   },
   condition: {
     type: String,
